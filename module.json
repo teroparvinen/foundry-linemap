@@ -1,0 +1,34 @@
+{
+    "id": "linemap",
+    "title": "Line Map",
+    "description": "Draw maps using connected symbols",
+    "authors": [
+        {
+            "name": "Tero Parvinen (tero.p)"
+        }
+    ],
+    "version": "0.1",
+    "compatibility": {
+        "minimum": 12,
+        "verified": 12
+    },
+    "scripts": [
+    ],
+    "esmodules": [
+        "module/linemap.js"
+    ],
+    "styles": [
+        "styles/linemap.css"
+    ],
+    "languages": [
+        {
+            "lang": "en",
+            "name": "English",
+            "path": "lang/en.json"
+        }
+    ],
+    "url": "https://github.com/teroparvinen/foundry-linemap",
+    "bugs": "https://github.com/teroparvinen/foundry-linemap/issues",
+    "manifest": "https://github.com/teroparvinen/foundry-linemap/releases/latest/download/module.json",
+    "download": "https://github.com/teroparvinen/foundry-linemap/releases/latest/download/module.zip"
+}

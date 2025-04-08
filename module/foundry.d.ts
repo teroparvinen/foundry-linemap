@@ -1,0 +1,15 @@
+declare const foundry: any;
+declare const Hooks: any;
+declare const game: any;
+declare const canvas: any;
+declare const CONFIG: any;
+declare const CONST: any;
+declare const ui: any;
+declare const console: any;
+declare const InteractionLayer: any;
+declare const PIXI: any;
+declare const structuredClone: any;
+declare function getTemplate(path: string): any;
+declare function $(...args: any[]): any;
+declare function fetch(target: string): any;
+declare function renderTemplate(template: string, options: any): Promise<void>;

@@ -1,0 +1,9 @@
+<div id="linemap-tool-options">
+    <div class="linemap-tool-shelf">
+        {{#each symbols as |symbol symbolName|}}
+            <a class="linemap-style-select {{#if (eq symbolName ../activeSymbol)}}active{{/if}}" data-action="set-symbol" data-line-style="{{symbolName}}">
+                <img class="symbol" src="{{symbol.icon}}" />
+            </a>
+        {{/each}}
+    </div>
+</div>

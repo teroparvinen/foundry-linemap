@@ -1,0 +1,8 @@
+{
+    "files": ["module/linemap.ts", "module/foundry.d.ts"],
+    "compilerOptions": {
+        "allowJs": true,
+        "lib": ["es2022", "esnext.asynciterable"],
+        "target": "es2019"
+    }
+}

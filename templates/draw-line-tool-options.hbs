@@ -1,0 +1,7 @@
+<div id="linemap-tool-options">
+    <div class="linemap-tool-shelf">
+        {{#each styles as |style styleName|}}
+            <a class="linemap-style-select {{#if (eq styleName ../activeStyle)}}active{{/if}}" data-action="set-line-style" data-line-style="{{styleName}}"><img src="{{style.icon}}" /></a>
+        {{/each}}
+    </div>
+</div>

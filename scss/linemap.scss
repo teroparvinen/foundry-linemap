@@ -1,0 +1,80 @@
+#linemap-tool-options {
+    float: left;
+    margin-top: 20px;
+    pointer-events: all;
+}
+
+.linemap-tool-shelf {
+    display: flex;
+    gap: 3px;
+
+    a {
+        flex: 0 0 55px;
+        height: 55px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid black;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+
+        img {
+            border: 0;
+
+            &.symbol {
+                scale: 0.5;
+            }
+        }
+    }
+
+    a.active {
+        border: 2px solid var(--color-warm-2);
+        box-shadow: 0 0 4px var(--color-warm-3);
+    }
+
+    .spacer {
+        flex: 0 0 3px;
+        width: 3px;
+    }
+}
+
+.linemap-menu {
+    position: absolute;
+    overflow: initial;
+    background: none;
+    border: 0;
+    box-shadow: none;
+
+    > div {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        margin-left: -50px;
+        margin-top: -50px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        overflow: initial;
+    }
+
+    .linemap-menu-item {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, .8);
+        border-radius: 50%;
+        color: white;
+        width: 60px;
+        height: 60px;
+        text-align: center;
+        line-height: 61px;
+        font-size: 23px;
+    
+        &.linemap-menu-item-left {
+            margin-left: -50px;
+        }
+        
+        &.linemap-menu-item-right {
+            margin-left: 50px;
+        }
+    }
+}
