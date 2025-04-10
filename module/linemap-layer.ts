@@ -4,12 +4,15 @@ import { Vec2, SnapType, SnapPoint } from "./dto.js";
 import { length2, sub2 } from "./helpers/utils.js";
 import { DrawLineTool } from "./tools/draw-line.js";
 import { DrawSymbolTool } from "./tools/draw-symbol.js";
+import { DrawWaypointTool } from "./tools/draw-waypoint.js";
 import { SelectTool } from "./tools/select-tool.js";
 import { AdjustTool } from "./tools/adjust-tool.js";
 
 interface LayerData {
     objects: ObjectData[];
 }
+
+export type TextureCollection = Record<string, { icon: any, footprint: any }>;
 
 export class LineMapLayer extends InteractionLayer {
     objects: ObjectType[] = [];
@@ -22,7 +25,8 @@ export class LineMapLayer extends InteractionLayer {
     revealNewObjects = true;
     adjustLinked = true;
 
-    symbolTextures: Record<string, { icon: any, footprint: any }> = {};
+    symbolTextures: TextureCollection = {};
+    waypointTextures: TextureCollection = {};
 
     constructor() {
         super();
@@ -31,11 +35,18 @@ export class LineMapLayer extends InteractionLayer {
             selectObject: new SelectTool(this),
             adjustObject: new AdjustTool(this),
             drawLine: new DrawLineTool(this),
-            drawSymbol: new DrawSymbolTool(this)
+            drawSymbol: new DrawSymbolTool(this),
+            drawWaypoint: new DrawWaypointTool(this)
         };
         this.activeTool = this.tools['selectObject'];
 
         this.symbolTextures = Object.fromEntries(Object.entries(CONFIG.linemap.symbols).map(([key, value]: [string, any]) => {
+            return [key, {
+                icon: PIXI.Texture.from(value.icon),
+                footprint: value.footprint ? PIXI.Texture.from(value.footprint) : undefined
+            }];
+        }));
+        this.waypointTextures = Object.fromEntries(Object.entries(CONFIG.linemap.waypoints).map(([key, value]: [string, any]) => {
             return [key, {
                 icon: PIXI.Texture.from(value.icon),
                 footprint: value.footprint ? PIXI.Texture.from(value.footprint) : undefined
@@ -401,8 +412,13 @@ export class LineMapLayer extends InteractionLayer {
     applyData(data: LayerData) {
         if (data) {
             // this.quadtree.clear();
-
-            this.objects = data.objects?.map(o => ObjectType.deserialize(o)) ?? [];
+            const objectEntries: [ObjectType, ObjectData][] = data.objects?.map(o => [ObjectType.create(o), o]);
+            const objectMap = objectEntries.reduce((acc, obj) => {
+                acc[obj[0].id] = obj[0];
+                return acc;
+            }, {});
+            objectEntries.forEach(([obj, data]: [ObjectType, ObjectData]) => obj.deserialize(data, objectMap));
+            this.objects = objectEntries.map(o => o[0]);
         }
     }
 }

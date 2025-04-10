@@ -1,44 +1,60 @@
-import { ObjectData, ObjectDrawLayers, ObjectType } from "../classes/object.js";
-import { AdjustmentPoint, SnapPoint, SnapType, Vec2 } from "../dto.js";
+import { ConstrainedPoint, ConstrainedPointData } from "../classes/constrained-point.js";
+import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType } from "../classes/object.js";
+import { AdjustmentPoint, PointType, SnapPoint, SnapType, Vec2 } from "../dto.js";
 import { add2, containsAabb, intersectAabb, length2, sub2 } from "../helpers/utils.js";
+import { TextureCollection } from "../linemap-layer.js";
 
 export interface SymbolData extends ObjectData {
+    point: ConstrainedPointData;
+    symbol: string;
 }
 
 export class Symbol extends ObjectType {
     static type = "symbol"
 
-    point: Vec2;
+    point: ConstrainedPoint;
     symbol: string;
 
     sprite: any;
 
-    constructor({ point, symbol }: { point: Vec2, symbol: string }) {
-        super();
-
-        this.point = [...point];
+    construct(point: ConstrainedPoint, symbol: string) {
+        this.point = point;
         this.symbol = symbol;
     }
 
-    static deserialize(data: any): ObjectType {
-        return new Symbol(data);
+    deserialize(data: SymbolData, objectMap: ObjectIdMapping) {
+        super.deserialize(data, objectMap);
+        this.construct(
+            new ConstrainedPoint(PointType.point, data.point.point, objectMap[data.point.sourceId], data.point.sourceT),
+            data.symbol
+        );
     }
 
     get serialized(): SymbolData {
         return { ...super.serialized, ...{
-            point: this.point,
+            point: this.point.serialized,
             symbol: this.symbol
         }};
     }
 
+    get textureCollection(): TextureCollection {
+        return canvas.linemap.symbolTextures;
+    }
+
+    get orientation(): number {
+        return 0;
+    }
+
     draw(layers: ObjectDrawLayers) {
-        const icon = canvas.linemap.symbolTextures[this.symbol].icon;
-        const footprint = canvas.linemap.symbolTextures[this.symbol].footprint;
+        const pt = this.point.point;
+        const icon = this.textureCollection[this.symbol].icon;
+        const footprint = this.textureCollection[this.symbol].footprint;
         if (this.isVisible && icon) {
             const sprite = new PIXI.Sprite(icon);
             sprite.anchor.set(0.5);
-            sprite.x = this.point[0];
-            sprite.y = this.point[1];
+            sprite.x = pt[0];
+            sprite.y = pt[1];
+            sprite.rotation = this.orientation;
             sprite.alpha = this.isRevealed ? 1.0 : 0.4;
 
             if (this.isSelected) {
@@ -65,8 +81,9 @@ export class Symbol extends ObjectType {
             if (footprint) {
                 const sprite = new PIXI.Sprite(footprint);
                 sprite.anchor.set(0.5);
-                sprite.x = this.point[0];
-                sprite.y = this.point[1];
+                sprite.x = pt[0];
+                sprite.y = pt[1];
+                sprite.rotation = this.orientation;
                 
                 layers.footprints?.addChild(sprite);
             }
@@ -78,9 +95,9 @@ export class Symbol extends ObjectType {
         const config = CONFIG.linemap.snap;
 
         if (types.includes(SnapType.symbol)) {
-            const d = length2(sub2(pt, this.point));
+            const d = length2(sub2(pt, this.point.point));
             if (d <= config.lineEnd) {
-                result.push(new SnapPoint(this.point, this, 0, SnapType.symbol));
+                result.push(new SnapPoint(this.point.point, this, 0, SnapType.symbol));
             }
         }
 
@@ -91,17 +108,26 @@ export class Symbol extends ObjectType {
         const w = this.sprite?.width ?? 0;
         const h = this.sprite?.height ?? 0;
         const spriteAabb = [
-            sub2(this.point, [w/2, h/2]),
-            add2(this.point, [w/2, h/2])
+            sub2(this.point.point, [w/2, h/2]),
+            add2(this.point.point, [w/2, h/2])
         ];
 
         return pt2 ? intersectAabb([pt1, pt2], spriteAabb) : containsAabb(pt1, spriteAabb);
     }
 
     getAdjustmentPoints(): AdjustmentPoint[] {
-        return [new AdjustmentPoint(this, 0, this.point)];
+        return [new AdjustmentPoint(PointType.point, this, 0, this.point.point)];
     }
-    setAdjustmentPoint(index: number, point: Vec2) {
-        this.point = point;
+    setAdjustmentPoint(index: number, point: ConstrainedPoint): boolean {
+        this.point.setFrom(point, this);
+        return true;
+    }
+
+    getParametricPoint(t: number, type: PointType): Vec2 {
+        return this.point.point;
+    }
+
+    hasConstraintTo(object: ObjectType): boolean {
+        return this.point.sourceObject === object || this.point.sourceObject?.hasConstraintTo(object);
     }
 }

@@ -1,10 +1,11 @@
+import { ConstrainedPoint } from "../classes/constrained-point.js";
 import { Tool } from "../classes/tool.js"
-import { Point, SnapPoint, SnapType, Vec2 } from "../dto.js";
+import { Point, PointType, SnapPoint, SnapType, Vec2 } from "../dto.js";
 import { add2, length2, sub2 } from "../helpers/utils.js";
 import { Line } from "../objects/line.js";
 
 export class DrawLineTool extends Tool {
-    stroke: Vec2[];
+    stroke: ConstrainedPoint[];
     snapPoint: SnapPoint;
 
     optionsElement: any;
@@ -48,7 +49,12 @@ export class DrawLineTool extends Tool {
     _getLineObject(): Line {
         const style = CONFIG.linemap.lineStyles[this.activeStyle];
         if (style && this.stroke) {
-            return new style.lineClass({ points: this.stroke, style: this.activeStyle });
+            const line = new (style.lineClass as typeof Line)();
+            line.construct(
+                this.stroke,
+                this.activeStyle
+            );
+            return line;
         }
         return undefined;
     }
@@ -81,16 +87,19 @@ export class DrawLineTool extends Tool {
     }
 
     onMouseMove(event: any, point: Point) {
-        this.snapPoint = this.layer.getSnapPoint([point.x, point.y], [SnapType.line, SnapType.lineEnd, SnapType.symbol]);
+        this.snapPoint = this.layer.getSnapPoint([point.x, point.y], [SnapType.lineContour, SnapType.lineEnd, SnapType.symbol]);
         this._updatePreview();
     }
 
     onDragLeftStart(event) {
         const eventPt: Vec2 = [event.interactionData.origin.x, event.interactionData.origin.y];
-        this.snapPoint = this.layer.getSnapPoint(eventPt, [SnapType.line, SnapType.lineEnd, SnapType.symbol]);
+        this.snapPoint = this.layer.getSnapPoint(eventPt, [SnapType.lineContour, SnapType.lineEnd, SnapType.symbol]);
         const pt = this.snapPoint ? this.snapPoint.pt : eventPt;
         
-        this.stroke = [pt, pt];
+        this.stroke = [
+            ConstrainedPoint.fromSnapOrPoint(PointType.line, eventPt, this.snapPoint),
+            ConstrainedPoint.fromSnapOrPoint(PointType.line, eventPt, this.snapPoint)
+        ];
 
         this._updatePreview();
 
@@ -99,16 +108,16 @@ export class DrawLineTool extends Tool {
 
     onDragLeftMove(event) {
         const eventPt: Vec2 = [event.interactionData.destination.x, event.interactionData.destination.y];
-        this.snapPoint = this.layer.getSnapPoint(eventPt, [SnapType.line, SnapType.lineEnd, SnapType.symbol]);
+        this.snapPoint = this.layer.getSnapPoint(eventPt, [SnapType.lineContour, SnapType.lineEnd, SnapType.symbol]);
         const pt = this.snapPoint ? this.snapPoint.pt : eventPt;
         
-        this.stroke[1] = pt;
+        this.stroke[1] = ConstrainedPoint.fromSnapOrPoint(PointType.line, eventPt, this.snapPoint);
 
         this._updatePreview();
     }
 
     async onDragLeftDrop(event) {
-        if (length2(sub2(this.stroke[0], this.stroke[1])) > 10) {
+        if (length2(sub2(this.stroke[0].point, this.stroke[1].point)) > 10) {
             this._submitStroke(event);
         }
         this.layer.preview.removeChildren();

@@ -7,9 +7,15 @@ export type Vec2 = [number, number];
 
 export enum SnapType {
     line = 'line',
+    lineContour = 'line-contour',
     lineEnd = 'line-end',
     symbol = 'symbol'
 };
+
+export enum PointType {
+    point,
+    line
+}
 
 export class SnapPoint {
     constructor(
@@ -21,11 +27,16 @@ export class SnapPoint {
 }
 
 export class AdjustmentPoint {
+    current: Vec2;
+
     constructor(
+        public type: PointType,
         public object: ObjectType,
         public index: number,
         public original: Vec2
-    ) {}
+    ) {
+        this.current = original;
+    }
 
     equals(other: AdjustmentPoint): boolean {
         return this.object === other.object && this.index === other.index && eq2(this.original, other.original);

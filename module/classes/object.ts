@@ -1,6 +1,9 @@
-import { Vec2, SnapPoint, SnapType, AdjustmentPoint } from "../dto.js";
+import { Vec2, SnapPoint, SnapType, AdjustmentPoint, PointType } from "../dto.js";
+import { generateId } from "../helpers/generate-id.js";
+import { ConstrainedPoint } from "./constrained-point.js";
 
 export interface ObjectData {
+    id: string;
     type: string;
     isRevealed: boolean;
 }
@@ -11,21 +14,37 @@ export interface ObjectDrawLayers {
     symbols?: any;
 }
 
+export type ObjectIdMapping = Record<string, ObjectType>;
+
 export class ObjectType {
     static type: string;
 
-    static deserialize(data: any): ObjectType {
-        const objType = CONFIG.linemap.objectTypes[data.type];
-        const obj = objType.deserialize(data);
-        obj.isRevealed = data.isRevealed;
-        return obj;
-    }
+    id: string;
 
     isSelected = false;
     isRevealed = false;
 
+    constructor(id?: string) {
+        this.id = id ?? generateId();
+    }
+
+    static getType(data: any): typeof ObjectType {
+        return this;
+    }
+
+    static create(data: any): ObjectType {
+        const objType = CONFIG.linemap.objectTypes[data.type];
+        const subType = objType.getType(data);
+        return new subType(data.id);
+    }
+
+    deserialize(data: any, objectMap: ObjectIdMapping) {
+        this.isRevealed = data.isRevealed;
+    }
+
     get serialized(): ObjectData {
         return {
+            id: this.id,
             type: (this.constructor as typeof ObjectType).type,
             isRevealed: this.isRevealed
         };
@@ -47,5 +66,18 @@ export class ObjectType {
     getAdjustmentPoints(): AdjustmentPoint[] {
         return [];
     }
-    setAdjustmentPoint(index: number, point: Vec2) {}
+    setAdjustmentPoint(index: number, point: ConstrainedPoint): boolean {
+        return true;
+    }
+
+    getParametricPoint(t: number, type: PointType): Vec2 {
+        return [0, 0];
+    }
+    getParametricOrientation(t: number): number {
+        return 0;
+    }
+
+    hasConstraintTo(object: ObjectType): boolean {
+        return false;
+    }
 }

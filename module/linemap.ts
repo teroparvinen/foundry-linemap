@@ -5,6 +5,7 @@ import { SolidLine } from "./objects/line-styles/solid-line.js";
 import { DashLine } from "./objects/line-styles/dash-line.js";
 import { WaveLine } from "./objects/line-styles/wave-line.js";
 import { ToolHotkey } from "./classes/tool.js";
+import { Waypoint } from "./objects/waypoint.js";
 
 Hooks.on("getSceneControlButtons", (controls: any) => {
     if (game.user.isGM) {
@@ -24,7 +25,7 @@ Hooks.on("getSceneControlButtons", (controls: any) => {
                 {
                     name: "adjustObject",
                     title: "linemap.tools.adjustObject",
-                    icon: "fas fa-circle-nodes",
+                    icon: "fas fa-up-down-left-right",
                     visible: true,
                     onClick: () => { canvas.linemap.activateTool("adjustObject"); }
                 },
@@ -41,6 +42,13 @@ Hooks.on("getSceneControlButtons", (controls: any) => {
                     icon: "fas fa-shapes",
                     visible: true,
                     onClick: () => { canvas.linemap.activateTool("drawSymbol"); }
+                },
+                {
+                    name: "drawWaypoint",
+                    title: "linemap.tools.drawWaypoint",
+                    icon: "fas fa-circle-nodes",
+                    visible: true,
+                    onClick: () => { canvas.linemap.activateTool("drawWaypoint"); }
                 },
                 {
                     name: "clearObjects",
@@ -174,6 +182,16 @@ Hooks.on("init", async () => {
         },
         precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
     });
+    game.keybindings.register("linemap", "drawWaypointTool", {
+        name: "linemap.keybindings.drawWaypointTool",
+        editable: [
+            { key: "KeyW" }
+        ],
+        onDown: () => {
+            return selectTool("drawWaypoint");
+        },
+        precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+    });
     game.keybindings.register("linemap", "revealObjects", {
         name: "linemap.keybindings.revealObjects",
         editable: [
@@ -191,6 +209,16 @@ Hooks.on("init", async () => {
         ],
         onDown: () => {
             return sendHotkey(ToolHotkey.hide);
+        },
+        precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+    });
+    game.keybindings.register("linemap", "reverseWaypointDirection", {
+        name: "linemap.keybindings.reverseWaypointDirection",
+        editable: [
+            { key: "KeyD" }
+        ],
+        onDown: () => {
+            return sendHotkey(ToolHotkey.reverse);
         },
         precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
     });
@@ -229,7 +257,8 @@ Hooks.on("init", async () => {
         },    
         objectTypes: {
             line: Line,
-            symbol: Symbol
+            symbol: Symbol,
+            waypoint: Waypoint
         },
         lineStyles: {
             major: {
@@ -276,6 +305,24 @@ Hooks.on("init", async () => {
             'curiosity': {
                 icon: 'modules/linemap/assets/symbols/curiosity.svg'
             },
+        },
+        waypoints: {
+            waypoint: {
+                icon: 'modules/linemap/assets/waypoints/waypoint.svg',
+                footprint: 'modules/linemap/assets/waypoints/waypoint.svg'
+            },
+            pass: {
+                icon: 'modules/linemap/assets/waypoints/pass.svg',
+                footprint: 'modules/linemap/assets/footprints/pass.svg'
+            },
+            'elevation-left': {
+                icon: 'modules/linemap/assets/waypoints/elevation-left.svg',
+                reverse: 'elevation-right'
+            },
+            'elevation-right': {
+                icon: 'modules/linemap/assets/waypoints/elevation-right.svg',
+                reverse: 'elevation-left'
+            }
         }
     };
 

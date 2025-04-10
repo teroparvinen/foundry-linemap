@@ -3,7 +3,8 @@ import { LineMapLayer } from "../linemap-layer.js";
 
 export enum ToolHotkey {
     reveal,
-    hide
+    hide,
+    reverse
 }
 
 export class Tool {

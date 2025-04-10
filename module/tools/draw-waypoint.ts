@@ -1,21 +1,21 @@
 import { ConstrainedPoint } from "../classes/constrained-point.js";
 import { ObjectType } from "../classes/object.js";
 import { SnapType } from "../dto.js";
-import { Symbol } from "../objects/symbol.js";
+import { Waypoint } from "../objects/waypoint.js";
 import { BaseIconTool } from "./base-icon.js";
 
-export class DrawSymbolTool extends BaseIconTool {
+export class DrawWaypointTool extends BaseIconTool {
     get symbolCollection(): any { 
-        return CONFIG.linemap.symbols;
+        return CONFIG.linemap.waypoints;
     }
 
     get snapTypes(): SnapType[] {
-        return [SnapType.lineEnd];
+        return [SnapType.line];
     }
 
     _createObject(point: ConstrainedPoint): ObjectType {
-        const symbol = new Symbol();
-        symbol.construct(point, this.activeSymbol);
-        return symbol;
+        const waypoint = new Waypoint();
+        waypoint.construct(point, this.activeSymbol);
+        return waypoint;
     }
 }

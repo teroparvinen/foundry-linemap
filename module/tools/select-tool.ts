@@ -4,6 +4,8 @@ import { AdjustmentPoint, SnapPoint, Vec2 } from "../dto.js";
 import { add2, eq2, length2, sub2 } from "../helpers/utils.js";
 import { Symbol } from "../objects/symbol.js";
 import { ContextMenu } from "../apps/context-menu.js";
+import { ConstrainedPoint } from "../classes/constrained-point.js";
+import { Waypoint } from "../objects/waypoint.js";
 
 enum DragOperation {
     move,
@@ -121,11 +123,11 @@ export class SelectTool extends Tool {
                 const gfx = this.layer.preview.addChild(new PIXI.Graphics());
                 gfx
                     .lineStyle(2, 0x00ffff)
-                    .drawRect(...pt1, ...d)            
+                    .drawRect(...pt1, ...d)
             }
         } else {
             for (const apt of this.adjustmentPoints) {
-                apt.object.setAdjustmentPoint(apt.index, add2(apt.original, d));
+                apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, add2(apt.original, d)));
             }
             this.layer.redraw(false);
         }
@@ -161,6 +163,11 @@ export class SelectTool extends Tool {
             this.layer.selection.forEach(obj => { obj.isRevealed = false; });
             this.layer.registerHistory();
             this.layer.redraw();
+        }
+        if (key === ToolHotkey.reverse) {
+            this.layer.selection.filter(obj => obj instanceof Waypoint).forEach(wp => wp.reverseDirection());
+            canvas.linemap.registerHistory();
+            canvas.linemap.redraw();
         }
     }
 }

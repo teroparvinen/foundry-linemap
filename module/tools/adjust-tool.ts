@@ -1,3 +1,4 @@
+import { ConstrainedPoint } from "../classes/constrained-point.js";
 import { Tool } from "../classes/tool.js";
 import { AdjustmentPoint, SnapPoint, SnapType, Vec2 } from "../dto.js";
 import { add2, compareDistance, containsAabb, eq2, length2, sub2 } from "../helpers/utils.js";
@@ -39,38 +40,38 @@ export class AdjustTool extends Tool {
         this.selectedAdjustmentPoints = sel;
     }
 
-    updateIndicators(delta?: Vec2) {
+    updateIndicators() {
         this.layer.preview.removeChildren();
 
-        const d = delta ?? [0, 0];
         const selectedPts: Vec2[] = [];
         const nonSelectedPts: Vec2[] = [];
 
         for (const adjPt of this.selectedAdjustmentPoints) {
             if (!selectedPts.find(pt => eq2(pt, adjPt.original))) {
-                selectedPts.push(adjPt.original);
+                selectedPts.push(adjPt.current);
             }
         }
         for (const adjPt of this.adjustmentPoints) {
             if (!selectedPts.find(pt => eq2(pt, adjPt.original)) && !nonSelectedPts.find(pt => eq2(pt, adjPt.original))) {
-                nonSelectedPts.push(adjPt.original);
+                nonSelectedPts.push(adjPt.current);
             }
         }
 
         for (const pt of selectedPts) {
-            const cpt = add2(pt, d);
             this.layer.preview.addChild(
                 new PIXI.Graphics()
                     .lineStyle(4, canvas.linemap._selectionColorHex)
-                    .drawCircle(cpt[0], cpt[1], AdjustTool.PointRadius)
-            );
-        }
-        for (const pt of nonSelectedPts) {
-            this.layer.preview.addChild(
-                new PIXI.Graphics()
-                    .lineStyle(2, 0xffffff)
                     .drawCircle(pt[0], pt[1], AdjustTool.PointRadius)
             );
+        }
+        if (this.dragOperation !== DragOperation.move) {
+            for (const pt of nonSelectedPts) {
+                this.layer.preview.addChild(
+                    new PIXI.Graphics()
+                        .lineStyle(2, 0xffffff)
+                        .drawCircle(pt[0], pt[1], AdjustTool.PointRadius)
+                );
+            }
         }
 
         if (this.snapPoint) {
@@ -87,7 +88,10 @@ export class AdjustTool extends Tool {
 
     onClickLeft(event: any) {
         const point: Vec2 = [event.interactionData.origin.x, event.interactionData.origin.y];
-        const covered = this.adjustmentPoints.filter(pt => compareDistance(pt.original, point, AdjustTool.PointRadius) <= 0);
+        let covered = this.adjustmentPoints.filter(pt => compareDistance(pt.original, point, AdjustTool.PointRadius) <= 0);
+        if (covered.find(pt => !pt.object)) {
+            covered = covered.filter(pt => !pt.object);
+        }
         if (!event.shiftKey) {
             this.selectedAdjustmentPoints = covered;
         } else {
@@ -98,14 +102,20 @@ export class AdjustTool extends Tool {
 
     onDragLeftStart(event: any) {
         const point: Vec2 = [event.interactionData.origin.x, event.interactionData.origin.y];
-        const adjPts = this.adjustmentPoints.filter(pt => compareDistance(pt.original, point, AdjustTool.PointRadius) <= 0);
-        if (!this.selectedAdjustmentPoints.length) {
-            this.selectedAdjustmentPoints = adjPts;
+        let adjPts = this.adjustmentPoints.filter(pt => compareDistance(pt.original, point, AdjustTool.PointRadius) <= 0);
+        if (adjPts.find(pt => !pt.object)) {
+            adjPts = adjPts.filter(pt => !pt.object);
         }
         const cmpPt = adjPts[0]?.original;
         event.interactionData.pointOffset = cmpPt ? sub2(point, cmpPt) : [0, 0];
         const coveredEqual = cmpPt && adjPts.slice(1).every(pt => eq2(pt.original, cmpPt));
-        const selectedMatching = cmpPt && this.selectedAdjustmentPoints.find(pt => eq2(pt.original, cmpPt));
+        let selectedMatching = cmpPt && !!this.selectedAdjustmentPoints.find(pt => eq2(pt.original, cmpPt));
+
+        if (!selectedMatching && adjPts.length) {
+            this.selectedAdjustmentPoints = adjPts;
+            selectedMatching = true;
+        }
+
         if (cmpPt && coveredEqual && selectedMatching) {
             this.dragOperation = DragOperation.move;
         } else {
@@ -133,10 +143,13 @@ export class AdjustTool extends Tool {
             }
         } else {
             for (const apt of this.selectedAdjustmentPoints) {
-                apt.object.setAdjustmentPoint(apt.index, add2(apt.original, d));
+                const pt = add2(apt.original, d);
+                if (apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt, this.snapPoint?.object, this.snapPoint?.t))) {
+                    apt.current = pt;
+                }
             }
             this.layer.redraw(false);
-            this.updateIndicators(d);
+            this.updateIndicators();
         }
     }
 
@@ -160,7 +173,12 @@ export class AdjustTool extends Tool {
             }
         } else {
             for (const apt of this.selectedAdjustmentPoints) {
-                apt.object.setAdjustmentPoint(apt.index, add2(apt.original, d));
+                const pt = add2(apt.original, d);
+                if (this.snapPoint && eq2(pt, this.snapPoint.pt)) {
+                    apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt, this.snapPoint.object, this.snapPoint.t));
+                } else {
+                    apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt));
+                }
             }
             this.updatePoints(true);
             this.layer.registerHistory();
