@@ -4,6 +4,7 @@ import { Symbol } from "./objects/symbol.js";
 import { SolidLine } from "./objects/line-styles/solid-line.js";
 import { DashLine } from "./objects/line-styles/dash-line.js";
 import { WaveLine } from "./objects/line-styles/wave-line.js";
+import { BarrierLine } from "./objects/line-styles/barrier-line.js";
 import { ToolHotkey } from "./classes/tool.js";
 import { Waypoint } from "./objects/waypoint.js";
 
@@ -274,6 +275,11 @@ Hooks.on("init", async () => {
             rough: {
                 icon: 'modules/linemap/assets/lines/rough-path.svg',
                 lineClass: WaveLine,
+                selectTolerance: 13
+            },
+            barrier: {
+                icon: 'modules/linemap/assets/lines/barrier.svg',
+                lineClass: BarrierLine,
                 selectTolerance: 13
             }
         },

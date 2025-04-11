@@ -39,6 +39,10 @@ export class Line extends ObjectType {
         }};
     }
 
+    get pointType(): PointType {
+        return PointType.line;
+    }
+
     getSnapPoints(pt: Vec2, types: SnapType[]) {
         const result: SnapPoint[] = [];
         const config = CONFIG.linemap.snap;
@@ -82,7 +86,7 @@ export class Line extends ObjectType {
     }
 
     getAdjustmentPoints(): AdjustmentPoint[] {
-        return this.points.map((pt, i) => new AdjustmentPoint(PointType.line, this, i, pt.point));
+        return this.points.map((pt, i) => new AdjustmentPoint(PointType.line, this, i, pt.point, !!pt.sourceObject));
     }
     setAdjustmentPoint(index: number, point: ConstrainedPoint): boolean {
         this.points[index].setFrom(point, this);

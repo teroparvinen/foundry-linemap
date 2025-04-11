@@ -33,7 +33,8 @@ export class AdjustmentPoint {
         public type: PointType,
         public object: ObjectType,
         public index: number,
-        public original: Vec2
+        public original: Vec2,
+        public isConstrained: boolean
     ) {
         this.current = original;
     }

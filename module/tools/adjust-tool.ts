@@ -46,7 +46,7 @@ export class AdjustTool extends Tool {
         const selectedPts: Vec2[] = [];
         const nonSelectedPts: Vec2[] = [];
 
-        for (const adjPt of this.selectedAdjustmentPoints) {
+        for (const adjPt of this.affectedAdjustmentPoints) {
             if (!selectedPts.find(pt => eq2(pt, adjPt.original))) {
                 selectedPts.push(adjPt.current);
             }
@@ -142,7 +142,7 @@ export class AdjustTool extends Tool {
                     .drawRect(...pt1, ...d)            
             }
         } else {
-            for (const apt of this.selectedAdjustmentPoints) {
+            for (const apt of this.affectedAdjustmentPoints) {
                 const pt = add2(apt.original, d);
                 if (apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt, this.snapPoint?.object, this.snapPoint?.t))) {
                     apt.current = pt;
@@ -172,7 +172,7 @@ export class AdjustTool extends Tool {
                 this.selectedAdjustmentPoints.push(...covered.filter(p1 => this.selectedAdjustmentPoints.find(p2 => !p2.equals(p1))));
             }
         } else {
-            for (const apt of this.selectedAdjustmentPoints) {
+            for (const apt of this.affectedAdjustmentPoints) {
                 const pt = add2(apt.original, d);
                 if (this.snapPoint && eq2(pt, this.snapPoint.pt)) {
                     apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt, this.snapPoint.object, this.snapPoint.t));
@@ -190,5 +190,23 @@ export class AdjustTool extends Tool {
         this.snapPoint = undefined;
         
         this.updateIndicators();
+    }
+
+    get affectedAdjustmentPoints(): AdjustmentPoint[] {
+        const pointGroups: Record<string, AdjustmentPoint[]> = {};
+        for (const pt of this.selectedAdjustmentPoints) {
+            const key = `${pt.original[0]},${pt.original[1]}`;
+            pointGroups[key] = [...(pointGroups[key] ?? []), pt];
+        }
+
+        return Object.values(pointGroups).flatMap(pts => {
+            let candidates;
+            if (this.layer.adjustLinked) {
+                candidates = pts.filter(pt => !pt.isConstrained);
+            } else {
+                candidates = pts.filter(pt => !!pt.isConstrained).slice(0, 1);
+            }
+            return candidates.length ? candidates : pts;
+        });
     }
 }

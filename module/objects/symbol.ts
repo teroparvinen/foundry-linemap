@@ -25,7 +25,7 @@ export class Symbol extends ObjectType {
     deserialize(data: SymbolData, objectMap: ObjectIdMapping) {
         super.deserialize(data, objectMap);
         this.construct(
-            new ConstrainedPoint(PointType.point, data.point.point, objectMap[data.point.sourceId], data.point.sourceT),
+            new ConstrainedPoint(this.pointType, data.point.point, objectMap[data.point.sourceId], data.point.sourceT),
             data.symbol
         );
     }
@@ -116,7 +116,7 @@ export class Symbol extends ObjectType {
     }
 
     getAdjustmentPoints(): AdjustmentPoint[] {
-        return [new AdjustmentPoint(PointType.point, this, 0, this.point.point)];
+        return [new AdjustmentPoint(this.pointType, this, 0, this.point.point, !!this.point.sourceObject)];
     }
     setAdjustmentPoint(index: number, point: ConstrainedPoint): boolean {
         this.point.setFrom(point, this);

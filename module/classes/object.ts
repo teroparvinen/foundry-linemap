@@ -54,6 +54,10 @@ export class ObjectType {
         return this.isRevealed || game.user.isGM;
     }
 
+    get pointType(): PointType {
+        return PointType.point;
+    }
+
     draw(layers: ObjectDrawLayers) {}
 
     getSnapPoints(pt: Vec2, types: SnapType[]): SnapPoint[] {

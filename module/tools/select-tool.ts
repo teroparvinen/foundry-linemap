@@ -100,12 +100,16 @@ export class SelectTool extends Tool {
 
         if (this.dragOperation === DragOperation.move) {
             const pts = selection.flatMap(obj => obj.getAdjustmentPoints());
+            const otherPts = this.layer.objects
+                .filter(obj => !selection.includes(obj))
+                .flatMap(obj => obj.getAdjustmentPoints())
+                .filter(candidate => pts.find(pt => eq2(pt.original, candidate.original)));
             if (this.layer.adjustLinked) {
-                const otherPts = this.layer.objects
-                    .filter(obj => !selection.includes(obj))
-                    .flatMap(obj => obj.getAdjustmentPoints())
-                    .filter(candidate => pts.find(pt => eq2(pt.original, candidate.original)));
                 pts.push(...otherPts);
+            } else {
+                otherPts
+                    .filter(pt => pt.isConstrained)
+                    .forEach(pt => pt.object.setAdjustmentPoint(pt.index, new ConstrainedPoint(pt.object.pointType, pt.original)));
             }
             this.adjustmentPoints = pts;
         }
@@ -126,7 +130,7 @@ export class SelectTool extends Tool {
                     .drawRect(...pt1, ...d)
             }
         } else {
-            for (const apt of this.adjustmentPoints) {
+            for (const apt of this.affectedAdjustmentPoints) {
                 apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, add2(apt.original, d)));
             }
             this.layer.redraw(false);
@@ -169,5 +173,23 @@ export class SelectTool extends Tool {
             canvas.linemap.registerHistory();
             canvas.linemap.redraw();
         }
+    }
+
+    get affectedAdjustmentPoints(): AdjustmentPoint[] {
+        const pointGroups: Record<string, AdjustmentPoint[]> = {};
+        for (const pt of this.adjustmentPoints) {
+            const key = `${pt.original[0]},${pt.original[1]}`;
+            pointGroups[key] = [...(pointGroups[key] ?? []), pt];
+        }
+
+        return Object.values(pointGroups).flatMap(pts => {
+            let candidates;
+            if (this.layer.adjustLinked) {
+                candidates = pts.filter(pt => !pt.isConstrained);
+            } else {
+                candidates = pts.filter(pt => !!pt.isConstrained).slice(0, 1);
+            }
+            return candidates.length ? candidates : pts;
+        });
     }
 }
