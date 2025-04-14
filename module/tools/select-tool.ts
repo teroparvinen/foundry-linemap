@@ -109,7 +109,7 @@ export class SelectTool extends Tool {
             } else {
                 otherPts
                     .filter(pt => pt.isConstrained)
-                    .forEach(pt => pt.object.setAdjustmentPoint(pt.index, new ConstrainedPoint(pt.object.pointType, pt.original)));
+                    .forEach(pt => pt.object.setAdjustmentPoint(pt.index, new ConstrainedPoint(pt.object.pointType, pt.original), false));
             }
             this.adjustmentPoints = pts;
         }
@@ -131,7 +131,7 @@ export class SelectTool extends Tool {
             }
         } else {
             for (const apt of this.affectedAdjustmentPoints) {
-                apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, add2(apt.original, d)));
+                apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, add2(apt.original, d)), false);
             }
             this.layer.redraw(false);
         }
@@ -140,12 +140,16 @@ export class SelectTool extends Tool {
     async onDragLeftDrop(event: any) {
         const pt1: Vec2 = [event.interactionData.origin.x, event.interactionData.origin.y];
         const pt2: Vec2 = [event.interactionData.destination.x, event.interactionData.destination.y];
+        const d = sub2(pt2, pt1);
 
         if (this.dragOperation === DragOperation.select) {
             this.layer.preview.removeChildren();
 
             this._updateSelection(event.shiftKey, pt1, pt2);
         } else {
+            for (const apt of this.affectedAdjustmentPoints) {
+                apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, add2(apt.original, d)), true);
+            }
             await this.layer.registerHistory();
             this.layer.redraw();
         }

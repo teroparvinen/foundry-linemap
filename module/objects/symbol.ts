@@ -45,6 +45,10 @@ export class Symbol extends ObjectType {
         return 0;
     }
 
+    get textAscent(): number {
+        return this.sprite.height / 2 + 30;
+    }
+
     draw(layers: ObjectDrawLayers) {
         const pt = this.point.point;
         const icon = this.textureCollection[this.symbol].icon;
@@ -96,7 +100,7 @@ export class Symbol extends ObjectType {
 
         if (types.includes(SnapType.symbol)) {
             const d = length2(sub2(pt, this.point.point));
-            if (d <= config.lineEnd) {
+            if (d <= config.symbol) {
                 result.push(new SnapPoint(this.point.point, this, 0, SnapType.symbol));
             }
         }
@@ -118,7 +122,7 @@ export class Symbol extends ObjectType {
     getAdjustmentPoints(): AdjustmentPoint[] {
         return [new AdjustmentPoint(this.pointType, this, 0, this.point.point, !!this.point.sourceObject)];
     }
-    setAdjustmentPoint(index: number, point: ConstrainedPoint): boolean {
+    setAdjustmentPoint(index: number, point: ConstrainedPoint, isFinal: boolean): boolean {
         this.point.setFrom(point, this);
         return true;
     }

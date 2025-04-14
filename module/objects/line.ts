@@ -43,6 +43,10 @@ export class Line extends ObjectType {
         return PointType.line;
     }
 
+    get textAscent(): number {
+        return 35;
+    }
+
     getSnapPoints(pt: Vec2, types: SnapType[]) {
         const result: SnapPoint[] = [];
         const config = CONFIG.linemap.snap;
@@ -88,7 +92,7 @@ export class Line extends ObjectType {
     getAdjustmentPoints(): AdjustmentPoint[] {
         return this.points.map((pt, i) => new AdjustmentPoint(PointType.line, this, i, pt.point, !!pt.sourceObject));
     }
-    setAdjustmentPoint(index: number, point: ConstrainedPoint): boolean {
+    setAdjustmentPoint(index: number, point: ConstrainedPoint, isFinal: boolean): boolean {
         this.points[index].setFrom(point, this);
         return true;
     }

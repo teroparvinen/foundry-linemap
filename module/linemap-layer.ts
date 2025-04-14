@@ -5,6 +5,7 @@ import { length2, sub2 } from "./helpers/utils.js";
 import { DrawLineTool } from "./tools/draw-line.js";
 import { DrawSymbolTool } from "./tools/draw-symbol.js";
 import { DrawWaypointTool } from "./tools/draw-waypoint.js";
+import { DrawTextTool } from "./tools/draw-text.js";
 import { SelectTool } from "./tools/select-tool.js";
 import { AdjustTool } from "./tools/adjust-tool.js";
 
@@ -36,7 +37,8 @@ export class LineMapLayer extends InteractionLayer {
             adjustObject: new AdjustTool(this),
             drawLine: new DrawLineTool(this),
             drawSymbol: new DrawSymbolTool(this),
-            drawWaypoint: new DrawWaypointTool(this)
+            drawWaypoint: new DrawWaypointTool(this),
+            drawText: new DrawTextTool(this)
         };
         this.activeTool = this.tools['selectObject'];
 
@@ -239,9 +241,12 @@ export class LineMapLayer extends InteractionLayer {
     }
 
     getSnapPoint(pt: Vec2, types: SnapType[], exclude?: ObjectType[]): SnapPoint {
-        const snaps = this.objects
+        let snaps = this.objects
             .filter(obj => !exclude || !exclude.includes(obj))
             .flatMap(obj => obj.getSnapPoints(pt, types));
+        if (snaps.find(s => s.type === SnapType.symbol)) {
+            snaps = snaps.filter(s => s.type === SnapType.symbol);
+        }
         return snaps.reduce((cur, snap) => {
             if (!cur) {
                 return snap;

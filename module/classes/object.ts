@@ -58,6 +58,10 @@ export class ObjectType {
         return PointType.point;
     }
 
+    get textAscent(): number {
+        return 50;
+    }
+
     draw(layers: ObjectDrawLayers) {}
 
     getSnapPoints(pt: Vec2, types: SnapType[]): SnapPoint[] {
@@ -70,7 +74,7 @@ export class ObjectType {
     getAdjustmentPoints(): AdjustmentPoint[] {
         return [];
     }
-    setAdjustmentPoint(index: number, point: ConstrainedPoint): boolean {
+    setAdjustmentPoint(index: number, point: ConstrainedPoint, isFinal: boolean): boolean {
         return true;
     }
 

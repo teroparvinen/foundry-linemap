@@ -87,6 +87,10 @@ export function eq2(a: Vec2, b: Vec2): boolean {
     return a && b && a[0] == b[0] && a[1] == b[1];
 }
 
+export function vec2fromXY({ x, y }: { x: number, y: number }): Vec2 {
+    return [x, y];
+}
+
 export function intersectAabb(box1: Vec2[], box2: Vec2[]): boolean {
     const [x1min, y1min] = box1[0];
     const [x1max, y1max] = box1[1];

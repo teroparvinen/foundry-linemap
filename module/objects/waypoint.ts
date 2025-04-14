@@ -20,7 +20,7 @@ export class Waypoint extends Symbol {
         return this.point.sourceObject?.getParametricOrientation(this.point.sourceT) ?? 0;
     }
 
-    setAdjustmentPoint(index: number, point: ConstrainedPoint): boolean {
+    setAdjustmentPoint(index: number, point: ConstrainedPoint, isFinal: boolean): boolean {
         if (point.sourceObject instanceof Line) {
             this.point.setFrom(point, this);
             return true;

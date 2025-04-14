@@ -144,7 +144,7 @@ export class AdjustTool extends Tool {
         } else {
             for (const apt of this.affectedAdjustmentPoints) {
                 const pt = add2(apt.original, d);
-                if (apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt, this.snapPoint?.object, this.snapPoint?.t))) {
+                if (apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt, this.snapPoint?.object, this.snapPoint?.t), false)) {
                     apt.current = pt;
                 }
             }
@@ -175,9 +175,9 @@ export class AdjustTool extends Tool {
             for (const apt of this.affectedAdjustmentPoints) {
                 const pt = add2(apt.original, d);
                 if (this.snapPoint && eq2(pt, this.snapPoint.pt)) {
-                    apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt, this.snapPoint.object, this.snapPoint.t));
+                    apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt, this.snapPoint.object, this.snapPoint.t), true);
                 } else {
-                    apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt));
+                    apt.object.setAdjustmentPoint(apt.index, new ConstrainedPoint(apt.type, pt), true);
                 }
             }
             this.updatePoints(true);

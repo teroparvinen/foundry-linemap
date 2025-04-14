@@ -15,3 +15,4 @@ declare function $(...args: any[]): any;
 declare function fetch(target: string): any;
 declare function renderTemplate(template: string, options: any): Promise<void>;
 declare function btoa(arg: string): string;
+declare function PreciseText(...args: any[]): void;

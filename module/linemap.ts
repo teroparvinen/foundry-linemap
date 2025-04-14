@@ -1,6 +1,7 @@
 import { LineMapLayer } from "./linemap-layer.js";
 import { Line } from "./objects/line.js";
 import { Symbol } from "./objects/symbol.js";
+import { Text } from "./objects/text.js";
 import { SolidLine } from "./objects/line-styles/solid-line.js";
 import { DashLine } from "./objects/line-styles/dash-line.js";
 import { WaveLine } from "./objects/line-styles/wave-line.js";
@@ -50,6 +51,13 @@ Hooks.on("getSceneControlButtons", (controls: any) => {
                     icon: "fas fa-circle-nodes",
                     visible: true,
                     onClick: () => { canvas.linemap.activateTool("drawWaypoint"); }
+                },
+                {
+                    name: "drawText",
+                    title: "linemap.tools.drawText",
+                    icon: "fas fa-text",
+                    visible: true,
+                    onClick: () => { canvas.linemap.activateTool("drawText"); }
                 },
                 {
                     name: "clearObjects",
@@ -193,6 +201,16 @@ Hooks.on("init", async () => {
         },
         precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
     });
+    game.keybindings.register("linemap", "drawTextTool", {
+        name: "linemap.keybindings.drawTextTool",
+        editable: [
+            { key: "KeyT" }
+        ],
+        onDown: () => {
+            return selectTool("drawText");
+        },
+        precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+    });
     game.keybindings.register("linemap", "revealObjects", {
         name: "linemap.keybindings.revealObjects",
         editable: [
@@ -259,7 +277,8 @@ Hooks.on("init", async () => {
         objectTypes: {
             line: Line,
             symbol: Symbol,
-            waypoint: Waypoint
+            waypoint: Waypoint,
+            text: Text
         },
         lineStyles: {
             major: {
