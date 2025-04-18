@@ -16,3 +16,5 @@ declare function fetch(target: string): any;
 declare function renderTemplate(template: string, options: any): Promise<void>;
 declare function btoa(arg: string): string;
 declare function PreciseText(...args: any[]): void;
+declare function setTimeout(...args: any[]): any;
+declare function clearTimeout(...args: any[]): any;

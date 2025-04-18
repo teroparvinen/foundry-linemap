@@ -32,6 +32,14 @@
         box-shadow: 0 0 4px var(--color-warm-3);
     }
 
+    a.area {
+        img {
+            position: absolute;
+            transform: scale(0.4);
+            clip-path: circle(60px at center);
+        }
+    }
+
     .spacer {
         flex: 0 0 3px;
         width: 3px;

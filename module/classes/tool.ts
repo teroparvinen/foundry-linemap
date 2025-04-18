@@ -20,6 +20,7 @@ export class Tool {
     onDragLeftStart(event) {}
     onClickLeft(event) {}
     onClickRight(event) {}
+    async onDoubleClick(event) {}
     onDragLeftMove(event) {}
     async onDragLeftDrop(event) {}
     async onDeleteKey(event) {}

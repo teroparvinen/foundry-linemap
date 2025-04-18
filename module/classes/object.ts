@@ -9,6 +9,7 @@ export interface ObjectData {
 }
 
 export interface ObjectDrawLayers {
+    areas?: any;
     lines?: any;
     footprints?: any;
     symbols?: any;

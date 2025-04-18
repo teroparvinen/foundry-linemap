@@ -26,31 +26,56 @@ export class DrawTextTool extends Tool {
         }
     }
 
+    async promptText(initial: string = ''): Promise<string> {
+        try {
+            return await foundry.applications.api.DialogV2.prompt({
+                window: { title: game.i18n.localize('linemap.ui.enterTextTitle') },
+                content: await renderTemplate('modules/linemap/templates/text-entry.hbs', { initial }),
+                ok: {
+                    label: initial ? game.i18n.localize('linemap.ui.updateTextButton') : game.i18n.localize('linemap.ui.enterTextButton'),
+                    callback: (event, button, dialog) => button.form.elements.content.value
+                }
+            });
+        } catch {
+            return undefined;
+        }
+    }
+
     async onClickLeft(event: any) {
         const eventPt: Vec2 = [event.interactionData.destination.x, event.interactionData.destination.y];
         this.snapPoint = this.layer.getSnapPoint(eventPt, [SnapType.lineContour, SnapType.symbol]);
         const pt = this.snapPoint ? this.snapPoint.pt : eventPt;
 
-        try {
-            const content = await foundry.applications.api.DialogV2.prompt({
-                window: { title: game.i18n.localize('linemap.ui.enterTextTitle') },
-                content: '<input name="content" autofocus>',
-                ok: {
-                    label: game.i18n.localize('linemap.ui.enterTextButton'),
-                    callback: (event, button, dialog) => button.form.elements.content.value
-                }
-            });
+        const text = this.layer.objects.find(obj => obj instanceof Text && obj.testSelection(eventPt));
+        if (text) {
+            this.layer.setSelection(text);
+        } else {
+            const content = await this.promptText();
+            if (content) {
+                const offset: Vec2 = [0, this.snapPoint ? -this.snapPoint.object.textAscent : 0]
+    
+                const text = new Text();
+                text.construct(ConstrainedPoint.fromSnapOrPoint(PointType.point, pt, this.snapPoint), offset, content);
+                this.layer.addObject(text);
+                this.layer.registerHistory();
+                this.layer.setSelection(text);
+            } else {
+                this.layer.setSelection();
+            }
 
             this.layer.preview.removeChildren();
-        
-            const offset: Vec2 = [0, this.snapPoint ? -this.snapPoint.object.textAscent : 0]
+        }
+    }
 
-            const text = new Text();
-            text.construct(ConstrainedPoint.fromSnapOrPoint(PointType.point, pt, this.snapPoint), offset, content);
-            this.layer.addObject(text);
-        } catch {
-            return;
-        }        
+    async onDoubleClick(event: any) {
+        const eventPt: Vec2 = [event.interactionData.destination.x, event.interactionData.destination.y];
+        const text = this.layer.objects.find(obj => obj instanceof Text && obj.testSelection(eventPt)) as Text;
+        const content = await this.promptText(text.text);
+        if (content) {
+            text.text = content;
+            this.layer.registerHistory();
+            this.layer.redraw();
+        }
     }
 
     onMouseMove(event: any, point: Point) {

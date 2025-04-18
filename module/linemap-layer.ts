@@ -5,12 +5,17 @@ import { length2, sub2 } from "./helpers/utils.js";
 import { DrawLineTool } from "./tools/draw-line.js";
 import { DrawSymbolTool } from "./tools/draw-symbol.js";
 import { DrawWaypointTool } from "./tools/draw-waypoint.js";
+import { DrawAreaTool } from "./tools/draw-area.js";
 import { DrawTextTool } from "./tools/draw-text.js";
 import { SelectTool } from "./tools/select-tool.js";
 import { AdjustTool } from "./tools/adjust-tool.js";
 
 interface LayerData {
     objects: ObjectData[];
+}
+
+interface InterfaceState {
+    selectedIds: string[];
 }
 
 export type TextureCollection = Record<string, { icon: any, footprint: any }>;
@@ -28,6 +33,7 @@ export class LineMapLayer extends InteractionLayer {
 
     symbolTextures: TextureCollection = {};
     waypointTextures: TextureCollection = {};
+    patternTextures: TextureCollection = {};
 
     constructor() {
         super();
@@ -38,6 +44,7 @@ export class LineMapLayer extends InteractionLayer {
             drawLine: new DrawLineTool(this),
             drawSymbol: new DrawSymbolTool(this),
             drawWaypoint: new DrawWaypointTool(this),
+            drawArea: new DrawAreaTool(this),
             drawText: new DrawTextTool(this)
         };
         this.activeTool = this.tools['selectObject'];
@@ -52,6 +59,12 @@ export class LineMapLayer extends InteractionLayer {
             return [key, {
                 icon: PIXI.Texture.from(value.icon),
                 footprint: value.footprint ? PIXI.Texture.from(value.footprint) : undefined
+            }];
+        }));
+        this.patternTextures = Object.fromEntries(Object.entries(CONFIG.linemap.patterns).map(([key, value]: [string, any]) => {
+            return [key, {
+                icon: PIXI.Texture.from(value.texture, { wrapMode: PIXI.WRAP_MODES.REPEAT }),
+                footprint: undefined
             }];
         }));
 
@@ -133,48 +146,7 @@ export class LineMapLayer extends InteractionLayer {
 
     async _draw(options) {
         this.renderTexture = PIXI.RenderTexture.create({ width: canvas.dimensions.width, height: canvas.dimensions.height });
-
-        this.objectContainer = new PIXI.Container();
-
-        this.renderSprite = this.addChild(new PIXI.Sprite(this.renderTexture));
-
-        this.preview = this.addChild(new PIXI.Container());
-
-        this.fetchData();
-        this.redraw();
-
-        this.visible = true;
-    }
-
-    redraw(highQuality = true) {
-        this.objectContainer.removeChildren();
-
-        const layers = {
-            lines: new PIXI.Container(),
-            footprints: new PIXI.Container(),
-            symbols: new PIXI.Container()
-        }
-
-        this.objects.forEach(obj => {
-            obj.draw(layers);
-        });
-
-        if (!highQuality) {
-            this.objectContainer.addChild(layers.lines);
-            this.objectContainer.addChild(layers.symbols);
-            canvas.app.renderer.render(this.objectContainer, { renderTexture: this.renderTexture, clear: true });
-            return;
-        }
-
-        const lineTexture = PIXI.RenderTexture.create({ width: canvas.dimensions.width, height: canvas.dimensions.height });
-        const maskTexture = PIXI.RenderTexture.create({ width: canvas.dimensions.width, height: canvas.dimensions.height });
-
-        canvas.app.renderer.render(layers.lines, { renderTexture: lineTexture, clear: true });
-        canvas.app.renderer.render(layers.footprints, { renderTexture: maskTexture, clear: true });
-
-        const lineContainer = new PIXI.Container();
-        const lineSprite = lineContainer.addChild(new PIXI.Sprite(lineTexture));
-        lineSprite.filters = [new PIXI.Filter(`
+        this.lineFilter = new PIXI.Filter(`
             attribute vec2 aVertexPosition;
 
             uniform mat3 projectionMatrix;
@@ -220,9 +192,56 @@ export class LineMapLayer extends InteractionLayer {
                 gl_FragColor = line * (1.0 - mask.a);
                 gl_FragColor.a = line.a * (1.0 - mask.a);
             }
-        `, { lineTexture: lineTexture, maskTexture: maskTexture, screenDimensions: [lineTexture.width, lineTexture.height] })];
+        `, { screenDimensions: [this.renderTexture.width, this.renderTexture.height] });
 
-        canvas.app.renderer.render(lineContainer, { renderTexture: this.renderTexture, clear: true });
+        this.objectContainer = new PIXI.Container();
+
+        this.renderSprite = this.addChild(new PIXI.Sprite(this.renderTexture));
+
+        this.preview = this.addChild(new PIXI.Container());
+
+        this.fetchData();
+        this.redraw();
+
+        this.visible = true;
+    }
+
+    redraw(highQuality = true) {
+        this.objectContainer.removeChildren();
+
+        const layers = {
+            areas: new PIXI.Container(),
+            lines: new PIXI.Container(),
+            footprints: new PIXI.Container(),
+            symbols: new PIXI.Container()
+        }
+
+        this.objects.forEach(obj => {
+            obj.draw(layers);
+        });
+
+        if (!highQuality) {
+            this.objectContainer.addChild(layers.areas);
+            this.objectContainer.addChild(layers.lines);
+            this.objectContainer.addChild(layers.symbols);
+            canvas.app.renderer.render(this.objectContainer, { renderTexture: this.renderTexture, clear: true });
+            return;
+        }
+
+        const lineTexture = PIXI.RenderTexture.create({ width: canvas.dimensions.width, height: canvas.dimensions.height });
+        const maskTexture = PIXI.RenderTexture.create({ width: canvas.dimensions.width, height: canvas.dimensions.height });
+
+        canvas.app.renderer.render(layers.lines, { renderTexture: lineTexture, clear: true });
+        canvas.app.renderer.render(layers.footprints, { renderTexture: maskTexture, clear: true });
+
+        const lineContainer = new PIXI.Container();
+        const lineSprite = lineContainer.addChild(new PIXI.Sprite(lineTexture));
+        lineSprite.filters = [this.lineFilter];
+        this.lineFilter.uniforms.lineTexture = lineTexture;
+        this.lineFilter.uniforms.maskTexture = maskTexture;
+
+        canvas.app.renderer.render(layers.areas, { renderTexture: this.renderTexture, clear: true });
+        canvas.app.renderer.render(lineContainer, { renderTexture: this.renderTexture, clear: false });
         canvas.app.renderer.render(layers.symbols, { renderTexture: this.renderTexture, clear: false });
     }
 
@@ -293,11 +312,33 @@ export class LineMapLayer extends InteractionLayer {
             const pt = event.data.getLocalPosition(canvas.app.stage);
             this.interactionData.destination = pt;
             event.interactionData = this.interactionData;
-            
-            if (!this.interactionData.isDragging) {
-                this.tools[game.activeTool]?.onClickLeft(event);     
+
+            let isDoubleClick = false;
+            if (this.lastInteractionData) {
+                const dx = this.interactionData.screenOrigin.x - this.lastInteractionData.screenOrigin.x;
+                const dy = this.interactionData.screenOrigin.y - this.lastInteractionData.screenOrigin.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist <= 3) {
+                    isDoubleClick = true;
+                }
+
+                this.lastInteractionData = undefined;
+            }
+
+            if (!isDoubleClick) {
+                if (!this.interactionData.isDragging) {
+                    this.tools[game.activeTool]?.onClickLeft(event);     
+                } else {
+                    this.tools[game.activeTool]?.onDragLeftDrop(event);
+                }
+    
+                this.interactionData.timer = setTimeout(() => {
+                    this.lastInteractionData = undefined;
+                }, 250);
+                this.lastInteractionData = this.interactionData;
             } else {
-                this.tools[game.activeTool]?.onDragLeftDrop(event);
+                this.tools[game.activeTool]?.onDoubleClick(event);
             }
         }
 
@@ -379,16 +420,23 @@ export class LineMapLayer extends InteractionLayer {
 
     async undo() {
         if (this.undoHistory.length >= 2) {
+            const state = this._captureState();
             this.undoHistory.pop();
             this.applyData(this.undoHistory.at(-1));
             await this._saveData();
             this.redraw();
-            this._stateInvalidated();
+            this._stateInvalidated(state);
         }
     }
 
-    _stateInvalidated() {
-        // TODO: Restore focus/selection
+    _captureState(): InterfaceState {
+        return {
+            selectedIds: this.objects.filter(o => o.isSelected).map(o => o.id)
+        };
+    }
+
+    _stateInvalidated(state: InterfaceState) {
+        this.setSelection(...this.objects.filter(o => state.selectedIds.includes(o.id)));
 
         this.tools[game.activeTool]?.stateInvalidated();        
     }

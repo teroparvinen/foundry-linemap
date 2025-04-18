@@ -60,7 +60,7 @@ export class SelectTool extends Tool {
             const menu = new ContextMenu({
                 left: {
                     icon: 'fa-eye-slash',
-                    label: 'linemap.hide',
+                    label: 'linemap.menu.hide',
                     handler: () => {
                         const objs = this.layer.selection.filter(o => o.isRevealed);
                         if (objs.length) {
@@ -72,7 +72,7 @@ export class SelectTool extends Tool {
                 },
                 right: {
                     icon: 'fa-eye',
-                    label: 'linemap.reveal',
+                    label: 'linemap.menu.reveal',
                     handler: () => {
                         const objs = this.layer.selection.filter(o => !o.isRevealed);
                         if (objs.length) {

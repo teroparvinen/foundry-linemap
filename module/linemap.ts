@@ -1,6 +1,7 @@
 import { LineMapLayer } from "./linemap-layer.js";
 import { Line } from "./objects/line.js";
 import { Symbol } from "./objects/symbol.js";
+import { Area } from "./objects/area.js";
 import { Text } from "./objects/text.js";
 import { SolidLine } from "./objects/line-styles/solid-line.js";
 import { DashLine } from "./objects/line-styles/dash-line.js";
@@ -51,6 +52,13 @@ Hooks.on("getSceneControlButtons", (controls: any) => {
                     icon: "fas fa-circle-nodes",
                     visible: true,
                     onClick: () => { canvas.linemap.activateTool("drawWaypoint"); }
+                },
+                {
+                    name: "drawArea",
+                    title: "linemap.tools.drawArea",
+                    icon: "fas fa-vector-polygon",
+                    visible: true,
+                    onClick: () => { canvas.linemap.activateTool("drawArea"); }
                 },
                 {
                     name: "drawText",
@@ -201,6 +209,16 @@ Hooks.on("init", async () => {
         },
         precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
     });
+    game.keybindings.register("linemap", "drawAreaTool", {
+        name: "linemap.keybindings.drawAreaTool",
+        editable: [
+            { key: "KeyP" }
+        ],
+        onDown: () => {
+            return selectTool("drawArea");
+        },
+        precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+    });
     game.keybindings.register("linemap", "drawTextTool", {
         name: "linemap.keybindings.drawTextTool",
         editable: [
@@ -278,6 +296,7 @@ Hooks.on("init", async () => {
             line: Line,
             symbol: Symbol,
             waypoint: Waypoint,
+            area: Area,
             text: Text
         },
         lineStyles: {
@@ -347,6 +366,20 @@ Hooks.on("init", async () => {
             'elevation-right': {
                 icon: 'modules/linemap/assets/waypoints/elevation-right.svg',
                 reverse: 'elevation-left'
+            }
+        },
+        patterns: {
+            diagonal1: {
+                texture: 'modules/linemap/assets/patterns/diagonal1.svg'
+            },
+            diagonal2: {
+                texture: 'modules/linemap/assets/patterns/diagonal2.svg'
+            },
+            dots: {
+                texture: 'modules/linemap/assets/patterns/dots.svg'
+            },
+            waves: {
+                texture: 'modules/linemap/assets/patterns/waves.svg'
             }
         }
     };
