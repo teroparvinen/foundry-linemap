@@ -37,7 +37,7 @@ export class WaveLine extends Line {
     draw(layers: ObjectDrawLayers) {
         if (this.isVisible && this.points) {
             const gfx = new PIXI.Graphics()
-                .lineStyle(3, this.isSelected ? canvas.linemap._selectionColorHex : 0x0);
+                .lineStyle(3, this._currentColorHex);
 
             const poly = new PIXI.Polygon(...this.path.flatMap(p => p));
             poly.closeStroke = false;

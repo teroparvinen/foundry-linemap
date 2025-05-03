@@ -6,6 +6,8 @@ import { Symbol } from "../objects/symbol.js";
 import { ContextMenu } from "../apps/context-menu.js";
 import { ConstrainedPoint } from "../classes/constrained-point.js";
 import { Waypoint } from "../objects/waypoint.js";
+import { Text } from "../objects/text.js";
+import { DrawTextTool } from "./draw-text.js";
 
 enum DragOperation {
     move,
@@ -51,6 +53,17 @@ export class SelectTool extends Tool {
     onClickLeft(event: any): void {
         const point: Vec2 = [event.interactionData.origin.x, event.interactionData.origin.y];
         this._updateSelection(event.shiftKey, point);
+    }
+
+    async onDoubleClick(event: any) {
+        const eventPt: Vec2 = [event.interactionData.destination.x, event.interactionData.destination.y];
+        const text = this.layer.objects.find(obj => obj instanceof Text && obj.testSelection(eventPt)) as Text;
+        const content = await DrawTextTool.promptText(text.text);
+        if (content) {
+            text.text = content;
+            this.layer.registerHistory();
+            this.layer.redraw();
+        }
     }
 
     onClickRight(event: any): void {

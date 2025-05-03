@@ -12,6 +12,8 @@ import { AdjustTool } from "./tools/adjust-tool.js";
 
 interface LayerData {
     objects: ObjectData[];
+    isLightMode: boolean;
+    symbolScale: number;
 }
 
 interface InterfaceState {
@@ -34,6 +36,9 @@ export class LineMapLayer extends InteractionLayer {
     symbolTextures: TextureCollection = {};
     waypointTextures: TextureCollection = {};
     patternTextures: TextureCollection = {};
+
+    isLightMode = false;
+    symbolScale = 1.0;
 
     constructor() {
         super();
@@ -61,12 +66,16 @@ export class LineMapLayer extends InteractionLayer {
                 footprint: value.footprint ? PIXI.Texture.from(value.footprint) : undefined
             }];
         }));
-        this.patternTextures = Object.fromEntries(Object.entries(CONFIG.linemap.patterns).map(([key, value]: [string, any]) => {
-            return [key, {
-                icon: PIXI.Texture.from(value.texture, { wrapMode: PIXI.WRAP_MODES.REPEAT }),
-                footprint: undefined
-            }];
-        }));
+        this.patternTextures = Object.fromEntries(
+            Object.entries(CONFIG.linemap.patterns)
+                .filter(([key, value]: [string, any]) => value.texture)
+                .map(([key, value]: [string, any]) => {
+                    return [key, {
+                        icon: PIXI.Texture.from(value.texture, { wrapMode: PIXI.WRAP_MODES.REPEAT }),
+                        footprint: undefined
+                    }];
+                })
+        );
 
         Hooks.on("updateScene", (obj, updates, { userId }: { userId?: string } = {}) => {
             if (obj === canvas.scene && updates.flags?.linemap?.serialized && userId != game.user.id) {
@@ -286,6 +295,14 @@ export class LineMapLayer extends InteractionLayer {
         return CONFIG.Canvas.dispositionColors.CONTROLLED;
     }
 
+    get _objectColor(): [number, number, number] {
+        return this.isLightMode ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0];
+    }
+
+    get _objectColorHex(): number {
+        return this.isLightMode ? 0xffffff : 0x0;
+    }
+
     get selection(): ObjectType[] {
         return this.objects.filter(o => o.isSelected);
     }
@@ -443,7 +460,9 @@ export class LineMapLayer extends InteractionLayer {
 
     get serialized(): LayerData {
         const objects = this.objects.map(o => o.serialized);
-        return { objects };
+        const isLightMode = this.isLightMode;
+        const symbolScale = this.symbolScale;
+        return { objects, isLightMode, symbolScale };
     }
 
     pushHistory() {
@@ -472,6 +491,8 @@ export class LineMapLayer extends InteractionLayer {
             }, {});
             objectEntries.forEach(([obj, data]: [ObjectType, ObjectData]) => obj.deserialize(data, objectMap));
             this.objects = objectEntries.map(o => o[0]);
+            this.isLightMode = data.isLightMode;
+            this.symbolScale = data.symbolScale ?? 1.0;
         }
     }
 }

@@ -1,7 +1,13 @@
 <div id="linemap-tool-options">
     <div class="linemap-tool-shelf">
         {{#each styles as |style styleName|}}
-            <a class="linemap-style-select area {{#if (eq styleName ../activePattern)}}active{{/if}}" data-action="set-area-pattern" data-area-pattern="{{styleName}}"><img src="{{style.texture}}" /></a>
+            <a class="linemap-style-select area {{#if (eq styleName ../activePattern)}}active{{/if}}" data-action="set-area-pattern" data-area-pattern="{{styleName}}">
+                {{#if style.texture}}
+                    <img src="{{style.texture}}" />
+                {{else}}
+                    <div class="linemap-area-placeholder" style="height: {{style.lineWidth}}px"></div>
+                {{/if}}
+            </a>
         {{/each}}
     </div>
 </div>

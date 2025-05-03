@@ -43,6 +43,14 @@ export class ObjectType {
         this.isRevealed = data.isRevealed;
     }
 
+    get _currentColor(): [number, number, number] {
+        return this.isSelected ? canvas.linemap._selectionColor : canvas.linemap._objectColor;
+    }
+
+    get _currentColorHex(): number {
+        return this.isSelected ? canvas.linemap._selectionColorHex : canvas.linemap._objectColorHex;
+    }
+
     get serialized(): ObjectData {
         return {
             id: this.id,
@@ -60,7 +68,7 @@ export class ObjectType {
     }
 
     get textAscent(): number {
-        return 50;
+        return 30;
     }
 
     draw(layers: ObjectDrawLayers) {}

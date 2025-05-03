@@ -8,7 +8,7 @@ export class DashLine extends Line {
         if (this.isVisible && this.points) {
             let coverage = 0;
             const gfx = new PIXI.Graphics()
-                .lineStyle(4, this.isSelected ? canvas.linemap._selectionColorHex : 0x0);
+                .lineStyle(4, this._currentColorHex);
 
             const drawSegment = (pt: Vec2, u: Vec2, l: number, coverage: number) => {
                 let first = true;

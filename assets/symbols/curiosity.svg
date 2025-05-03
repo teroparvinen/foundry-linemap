@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="33px" height="34px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-    <path id="curiosity" d="M29.484,27.852l3.113,-5.358l-9.896,-5.709l9.896,-5.708l-3.113,-5.358l-9.875,5.708l0,-11.417l-6.221,0l0,11.417l-9.875,-5.708l-3.112,5.358l9.875,5.708l-9.875,5.709l3.112,5.358l9.875,-5.687l0,11.395l6.221,0l0,-11.395l9.875,5.687Z" style="fill-rule:nonzero;"/>
+<svg width="66px" height="68px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <path id="curiosity" d="M58.968,55.704l6.225,-10.716l-19.791,-11.417l19.791,-11.417l-6.225,-10.716l-19.75,11.416l0,-22.833l-12.441,-0l-0,22.833l-19.75,-11.416l-6.225,10.716l19.75,11.417l-19.75,11.417l6.225,10.716l19.75,-11.375l-0,22.792l12.441,-0l0,-22.792l19.75,11.375Z" style="fill-rule:nonzero;"/>
 </svg>

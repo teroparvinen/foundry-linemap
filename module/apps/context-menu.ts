@@ -1,4 +1,3 @@
-
 const { api } = foundry.applications;
 
 export interface MenuOption {

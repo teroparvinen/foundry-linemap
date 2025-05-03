@@ -44,44 +44,50 @@ export class Area extends ObjectType {
         if (this.isVisible && this.points) {
             const poly = this._polygon;
             const texture = canvas.linemap.patternTextures[this.pattern]?.icon;
-            const points = poly.points;
-            const uvs = points.map(pt => pt / texture.width);
-            const indices = PIXI.utils.earcut(points);
+            if (texture) {
+                const points = poly.points;
+                const uvs = points.map(pt => pt / texture.width);
+                const indices = PIXI.utils.earcut(points);
+    
+                const tintColor = this._currentColor;
+                const shader = PIXI.Shader.from(`
+                    precision highp float;
+                    attribute vec2 aVertexPosition;
+                    attribute vec2 aTextureCoord;
+    
+                    uniform mat3 projectionMatrix;
+    
+                    varying vec2 vTextureCoord;
+    
+                    void main(void){
+                        gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
+                        vTextureCoord = aTextureCoord;
+                    }
+                `, `
+                    precision mediump float;
+                    varying vec2 vTextureCoord;
+    
+                    uniform sampler2D uSampler;
+                    uniform vec3 tintColor;
+    
+                    void main(void){
+                        vec4 s = texture2D(uSampler, vTextureCoord);
+                        gl_FragColor.a = s.a;
+                        gl_FragColor.rgb = tintColor * s.a;
+                    }            
+                `, { uSampler: texture, tintColor })
+                const geometry = new PIXI.Geometry();
+                geometry.addAttribute('aVertexPosition', points, 2);
+                geometry.addAttribute('aTextureCoord', uvs, 2);
+                geometry.addIndex(indices);
+                const mesh = new PIXI.Mesh(geometry, shader, undefined, PIXI.DRAW_MODES.TRIANGLES);
+                mesh.alpha = this.isRevealed ? 1.0 : 0.2;
+                layers.areas?.addChild(mesh);
+            }
 
-            const shader = PIXI.Shader.from(`
-                precision highp float;
-                attribute vec2 aVertexPosition;
-                attribute vec2 aTextureCoord;
-
-                uniform mat3 projectionMatrix;
-
-                varying vec2 vTextureCoord;
-
-                void main(void){
-                    gl_Position = vec4((projectionMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-                    vTextureCoord = aTextureCoord;
-                }
-            `, `
-                precision mediump float;
-                varying vec2 vTextureCoord;
-
-                uniform sampler2D uSampler;
-
-                void main(void){
-                    vec2 uv = vTextureCoord;
-                    gl_FragColor = texture2D(uSampler, uv);
-                }            
-            `, { uSampler: texture })
-            const geometry = new PIXI.Geometry();
-            geometry.addAttribute('aVertexPosition', points, 2);
-            geometry.addAttribute('aTextureCoord', uvs, 2);
-            geometry.addIndex(indices);
-            const mesh = new PIXI.Mesh(geometry, shader, undefined, PIXI.DRAW_MODES.TRIANGLES);
-            mesh.alpha = this.isRevealed ? 1.0 : 0.2;
-            layers.areas?.addChild(mesh);
-
+            const lineWidth = CONFIG.linemap.patterns[this.pattern]?.lineWidth ?? 4;
             const gfx = new PIXI.Graphics()
-                .lineStyle(4, this.isSelected ? canvas.linemap._selectionColorHex : 0x0)
+                .lineStyle(lineWidth, this._currentColorHex)
                 .drawPolygon(poly);
             gfx.alpha = this.isRevealed ? 1.0 : 0.2;
             layers.areas?.addChild(gfx);

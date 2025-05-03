@@ -25,6 +25,12 @@
                 scale: 0.5;
             }
         }
+
+        .linemap-area-placeholder {
+            width: 100%;
+            background: black;
+            scale: 1.0 0.5;
+        }
     }
 
     a.active {
@@ -85,4 +91,9 @@
             margin-left: 50px;
         }
     }
+}
+
+textarea.linemap-text-content {
+    padding: 0.3rem;
+    text-align: center;
 }

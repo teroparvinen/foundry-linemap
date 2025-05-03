@@ -9,6 +9,7 @@ import { WaveLine } from "./objects/line-styles/wave-line.js";
 import { BarrierLine } from "./objects/line-styles/barrier-line.js";
 import { ToolHotkey } from "./classes/tool.js";
 import { Waypoint } from "./objects/waypoint.js";
+import { ScenePropertiesApp } from "./apps/scene-properties.js";
 
 Hooks.on("getSceneControlButtons", (controls: any) => {
     if (game.user.isGM) {
@@ -74,9 +75,15 @@ Hooks.on("getSceneControlButtons", (controls: any) => {
                     visible: true,
                     button: true,
                     onClick: async () => {
-                        canvas.linemap.clear();
-                        await canvas.linemap.dataChanged();
-                        canvas.linemap._draw();
+                        if (await foundry.applications.api.DialogV2.confirm({
+                            content: game.i18n.localize('linemap.ui.confirmDelete'),
+                            rejectClose: false,
+                            modal: true
+                        })) {
+                            canvas.linemap.clear();
+                            await canvas.linemap.dataChanged();
+                            canvas.linemap._draw();
+                        }
                     }
                 }
             ],
@@ -136,6 +143,17 @@ Hooks.on("getSceneControlButtons", (controls: any) => {
                     }
                 });
             }
+    
+            layerControls.tools.push({
+                name: "linemapSettings",
+                title: "linemap.tools.settings",
+                icon: "fas fa-cog",
+                visible: true,
+                button: true,
+                onClick: () => {
+                    ScenePropertiesApp.activate();
+                }
+            });
         }
 
         controls.push(layerControls);
@@ -256,6 +274,38 @@ Hooks.on("init", async () => {
         ],
         onDown: () => {
             return sendHotkey(ToolHotkey.reverse);
+        },
+        precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+    });
+    game.keybindings.register("linemap", "boldText", {
+        name: "linemap.keybindings.boldText",
+        editable: [
+            { key: "KeyB" }
+        ],
+        onDown: () => {
+            return sendHotkey(ToolHotkey.bold);
+        },
+        precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+    });
+    game.keybindings.register("linemap", "italicText", {
+        name: "linemap.keybindings.italicText",
+        editable: [
+            { key: "KeyI" }
+        ],
+        onDown: () => {
+            return sendHotkey(ToolHotkey.italic);
+        },
+        precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
+    });
+    game.keybindings.register("linemap", "toggleLinked", {
+        name: "linemap.keybindings.toggleLinked",
+        editable: [
+            { key: "KeyN" }
+        ],
+        onDown: () => {
+            canvas.linemap.adjustLinked = !canvas.linemap.adjustLinked;
+            ui.controls.initialize();
+            return true;
         },
         precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
     });
@@ -380,6 +430,9 @@ Hooks.on("init", async () => {
             },
             waves: {
                 texture: 'modules/linemap/assets/patterns/waves.svg'
+            },
+            barrier: {
+                lineWidth: 12
             }
         }
     };

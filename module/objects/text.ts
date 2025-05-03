@@ -3,10 +3,18 @@ import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType } from "../cl
 import { AdjustmentPoint, PointType, Vec2 } from "../dto.js";
 import { add2, containsAabb, intersectAabb, length2, sub2, vec2fromXY } from "../helpers/utils.js";
 
+export enum TextStyle {
+    normal = 'normal',
+    bold = 'bold',
+    italic = 'italic',
+    bolditalic = 'bolditalic'
+}
+
 export interface TextData extends ObjectData {
     point: ConstrainedPointData;
     offset: Vec2;
     text: string;
+    style: TextStyle;
 }
 
 export class Text extends ObjectType {
@@ -15,13 +23,15 @@ export class Text extends ObjectType {
     point: ConstrainedPoint;
     offset: Vec2;
     text: string;
+    style: TextStyle;
 
     sprite: any;
 
-    construct(point: ConstrainedPoint, offset: Vec2, text: string) {
+    construct(point: ConstrainedPoint, offset: Vec2, text: string, style: TextStyle = TextStyle.normal) {
         this.point = point;
         this.offset = offset;
         this.text = text;
+        this.style = style;
     }
 
     deserialize(data: TextData, objectMap: ObjectIdMapping) {
@@ -29,7 +39,8 @@ export class Text extends ObjectType {
         this.construct(
             new ConstrainedPoint(this.pointType, data.point.point, objectMap[data.point.sourceId], data.point.sourceT),
             data.offset,
-            data.text
+            data.text,
+            data.style
         );
     }
 
@@ -37,7 +48,8 @@ export class Text extends ObjectType {
         return { ...super.serialized, ...{
             point: this.point.serialized,
             offset: this.offset,
-            text: this.text
+            text: this.text,
+            style: this.style
         }};
     }
 
@@ -61,13 +73,63 @@ export class Text extends ObjectType {
         return Math.abs(orientation) > Math.PI / 2 ? orientation + Math.PI : orientation;
     }
 
-    draw(layers: ObjectDrawLayers) {
-        const pt = this.point.point;
-        const text = new PreciseText(this.text, {
+    static get _staticPixiOptions(): any {
+        return {
             fontFamily: 'Noticia Text',
             fontSize: 36,
-            fill: this.isSelected ? canvas.linemap._selectionColorHex : 0
-        });
+            align: 'center'
+        };
+    }
+
+    get _pixiOptions(): any {
+        return {
+            ...Text._staticPixiOptions,
+            fontStyle: this.style === TextStyle.italic || this.style === TextStyle.bolditalic ? 'italic' : 'normal',
+            fontWeight: this.style === TextStyle.bold || this.style === TextStyle.bolditalic ? 'bold': 'normal',
+            fill: this._currentColorHex,
+        };
+    }
+
+    toggleStyle(style: TextStyle) {
+        switch (style) {
+            case TextStyle.bold:
+                switch (this.style) {
+                    case TextStyle.normal:
+                        this.style = TextStyle.bold;
+                        break;
+                    case TextStyle.bold:
+                        this.style = TextStyle.normal;
+                        break;
+                    case TextStyle.italic:
+                        this.style = TextStyle.bolditalic;
+                        break;
+                    case TextStyle.bolditalic:
+                        this.style = TextStyle.italic;
+                        break;
+                }
+                break;
+            case TextStyle.italic:
+                switch (this.style) {
+                    case TextStyle.normal:
+                        this.style = TextStyle.italic;
+                        break;
+                    case TextStyle.bold:
+                        this.style = TextStyle.bolditalic;
+                        break;
+                    case TextStyle.italic:
+                        this.style = TextStyle.normal;
+                        break;
+                    case TextStyle.bolditalic:
+                        this.style = TextStyle.bold;
+                        break;
+                }
+                break;
+        }
+    }
+
+    draw(layers: ObjectDrawLayers) {
+        const pt = this.point.point;
+        const text = new PreciseText(this.text, this._pixiOptions);
         text.anchor.set(0.5);
         text.alpha = this.isRevealed ? 1.0 : 0.4;
 
@@ -100,12 +162,27 @@ export class Text extends ObjectType {
     getAdjustmentPoints(): AdjustmentPoint[] {
         const anchor = this.point.point;
         const [offset, orientation] = this._transformedProperties;
-        const index = canvas.linemap.activeTool === canvas.linemap.tools['selectObject'] ? 2 : 0;
-        const result = [new AdjustmentPoint(this.pointType, this, index, anchor, !!this.point.sourceObject)];
-        if (index === 0 && length2(offset) > 0) {
-            result.push(new AdjustmentPoint(this.pointType, this, 1, add2(anchor, offset), !!this.point.sourceObject));
+
+        // const index = canvas.linemap.activeTool === canvas.linemap.tools['selectObject'] ? 2 : 0;
+        // const result = [new AdjustmentPoint(this.pointType, this, index, anchor, !!this.point.sourceObject)];
+        // if (index === 0 && length2(offset) > 0) {
+        //     result.push(new AdjustmentPoint(this.pointType, this, 1, add2(anchor, offset), !!this.point.sourceObject));
+        // }
+        // return result;
+
+        if (canvas.linemap.activeTool === canvas.linemap.tools['selectObject']) {
+            if (!this.point.sourceObject) {
+                return [new AdjustmentPoint(this.pointType, this, 2, anchor, !!this.point.sourceObject)];
+            } else {
+                return [new AdjustmentPoint(this.pointType, this, 2, add2(anchor, offset), !!this.point.sourceObject)]
+            }
+        } else {
+            const result = [new AdjustmentPoint(this.pointType, this, 0, anchor, !!this.point.sourceObject)];
+            if (length2(offset) > 0) {
+                result.push(new AdjustmentPoint(this.pointType, this, 1, add2(anchor, offset), !!this.point.sourceObject));
+            }
+            return result;
         }
-        return result;
     }
     setAdjustmentPoint(index: number, point: ConstrainedPoint, isFinal: boolean): boolean {
         if (index === 0) {
@@ -113,7 +190,7 @@ export class Text extends ObjectType {
                 if (!point.sourceObject) {
                     this.offset = [0, 0];
                 } else if (length2(this.offset) === 0) {
-                    this.offset = [0, -point.sourceObject.textAscent];
+                    this.offset = [0, -(point.sourceObject.textAscent + this.sprite.height / 2)];
                 }
             }
             this.point.setFrom(point, this);
@@ -123,10 +200,15 @@ export class Text extends ObjectType {
             const offset = mtx.applyInverse({ x: visualOffset[0], y: visualOffset[1] });
             this.offset = [offset.x, offset.y];
         } else {
-            if (isFinal) {
+            if (canvas.linemap.adjustLinked && this.point.sourceObject) {
+                const mtx = new PIXI.Matrix().rotate(this._adjustedOrientation);
+                const visualOffset = sub2(point.point, this.point.point);
+                const offset = mtx.applyInverse({ x: visualOffset[0], y: visualOffset[1] });
+                this.offset = [offset.x, offset.y];
+            } else {
                 this.offset = [0, 0];
+                this.point.setFrom(point, this);
             }
-            this.point.setFrom(point, this);
         }
 
         return true;
@@ -138,5 +220,11 @@ export class Text extends ObjectType {
 
     hasConstraintTo(object: ObjectType): boolean {
         return this.point.sourceObject === object || this.point.sourceObject?.hasConstraintTo(object);
+    }
+
+    static calculateHeight(content: string): number {
+        const text = new PreciseText(content, this._staticPixiOptions);
+        const bounds = text.getLocalBounds();
+        return bounds.height;
     }
 }

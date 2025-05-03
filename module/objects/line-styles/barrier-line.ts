@@ -8,7 +8,7 @@ export class BarrierLine extends Line {
             const poly = new PIXI.Polygon(...this.points.flatMap(pt => pt.point));
             poly.closeStroke = false;
             const gfx = new PIXI.Graphics()
-                .lineStyle(12, this.isSelected ? canvas.linemap._selectionColorHex : 0x0)
+                .lineStyle(12, this._currentColorHex)
                 .drawPolygon(poly);
             gfx.alpha = this.isRevealed ? 1.0 : 0.2;
             layers.lines?.addChild(gfx);
@@ -18,7 +18,7 @@ export class BarrierLine extends Line {
             const db = sub2(pt2b, pt1b);
             const nb = normalize(normal(db));
             gfx
-                .lineStyle(4, this.isSelected ? canvas.linemap._selectionColorHex : 0x0)
+                .lineStyle(4, this._currentColorHex)
                 .moveTo(...add2(pt1b, mult2(nb, 20)))
                 .lineTo(...add2(pt1b, mult2(nb, -20)));
 
@@ -27,7 +27,7 @@ export class BarrierLine extends Line {
             const de = sub2(pt2e, pt1e);
             const ne = normalize(normal(de));
             gfx
-                .lineStyle(4, this.isSelected ? canvas.linemap._selectionColorHex : 0x0)
+                .lineStyle(4, this._currentColorHex)
                 .moveTo(...add2(pt2e, mult2(ne, 20)))
                 .lineTo(...add2(pt2e, mult2(ne, -20)));
         }

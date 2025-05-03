@@ -44,7 +44,7 @@ export class Line extends ObjectType {
     }
 
     get textAscent(): number {
-        return 35;
+        return 15;
     }
 
     getSnapPoints(pt: Vec2, types: SnapType[]) {

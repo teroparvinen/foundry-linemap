@@ -45,39 +45,43 @@ export class Symbol extends ObjectType {
         return 0;
     }
 
+    get scale(): number {
+        return 0.5 * canvas.linemap.symbolScale;
+    }
+
     get textAscent(): number {
-        return this.sprite.height / 2 + 30;
+        return this.sprite.height / 2 + 5;
     }
 
     draw(layers: ObjectDrawLayers) {
         const pt = this.point.point;
         const icon = this.textureCollection[this.symbol].icon;
         const footprint = this.textureCollection[this.symbol].footprint;
+        const scale = this.scale;
         if (this.isVisible && icon) {
             const sprite = new PIXI.Sprite(icon);
             sprite.anchor.set(0.5);
             sprite.x = pt[0];
             sprite.y = pt[1];
             sprite.rotation = this.orientation;
+            sprite.scale = { x: scale, y: scale };
             sprite.alpha = this.isRevealed ? 1.0 : 0.4;
 
-            if (this.isSelected) {
-                const tintColor = canvas.linemap._selectionColor;
-                sprite.filters = [new PIXI.Filter(null, `
-                    varying vec2 vTextureCoord;
-                    uniform sampler2D uSampler;
-                    uniform vec3 tintColor;
+            const tintColor = this._currentColor;
+            sprite.filters = [new PIXI.Filter(null, `
+                varying vec2 vTextureCoord;
+                uniform sampler2D uSampler;
+                uniform vec3 tintColor;
 
-                    void main(void)
-                    {
-                        vec4 s = texture2D(uSampler, vTextureCoord);
-                        gl_FragColor.a = s.a;
-                        gl_FragColor.rgb = tintColor * s.a;
-                    }
-                `, {
-                    tintColor
-                })];
-            }
+                void main(void)
+                {
+                    vec4 s = texture2D(uSampler, vTextureCoord);
+                    gl_FragColor.a = s.a;
+                    gl_FragColor.rgb = tintColor * s.a;
+                }
+            `, {
+                tintColor
+            })];
 
             layers.symbols?.addChild(sprite);
             this.sprite = sprite;
@@ -87,6 +91,7 @@ export class Symbol extends ObjectType {
                 sprite.anchor.set(0.5);
                 sprite.x = pt[0];
                 sprite.y = pt[1];
+                sprite.scale = { x: scale, y: scale };
                 sprite.rotation = this.orientation;
                 
                 layers.footprints?.addChild(sprite);

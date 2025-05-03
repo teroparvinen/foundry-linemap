@@ -164,9 +164,10 @@ export class DrawAreaTool extends Tool {
             this.layer.preview.removeChildren();
 
             if (length2(d) > 3) {
+                const lineWidth = CONFIG.linemap.patterns[this.activePattern]?.lineWidth ?? 4;
                 const gfx = this.layer.preview.addChild(new PIXI.Graphics());
                 gfx
-                    .lineStyle(4, 0x0)
+                    .lineStyle(lineWidth, 0x0)
                     .drawRect(...pt1, ...d)
             }
         }
