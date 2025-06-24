@@ -10,9 +10,7 @@
             "drawText": "Draw text",
             "trash": "Delete all objects",
             "newObjectsRevealed": "Created objects are revealed",
-            "newObjectsHidden": "Created objects are hidden",
             "adjustLinked": "Adjusting linked points preserves links",
-            "adjustUnlinked": "Adjusting linked points breaks links",
             "settings": "Scene settings"
         },
         "keybindings": {

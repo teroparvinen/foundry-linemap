@@ -4,6 +4,8 @@ import { Point, PointType, SnapPoint, SnapType, Vec2 } from "../dto.js";
 import { add2, length2, sub2 } from "../helpers/utils.js";
 import { Line } from "../objects/line.js";
 
+const { getTemplate } = foundry.applications.handlebars;
+
 export class DrawLineTool extends Tool {
     stroke: ConstrainedPoint[];
     snapPoint: SnapPoint;

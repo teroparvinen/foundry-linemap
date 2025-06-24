@@ -3,7 +3,8 @@ import { ObjectType } from "../classes/object.js";
 import { Tool } from "../classes/tool.js"
 import { Point, PointType, SnapPoint, SnapType, Vec2 } from "../dto.js";
 import { add2, sub2 } from "../helpers/utils.js";
-import { Symbol } from "../objects/symbol.js";
+
+const { getTemplate } = foundry.applications.handlebars;
 
 export class BaseIconTool extends Tool {
     snapPoint: SnapPoint;

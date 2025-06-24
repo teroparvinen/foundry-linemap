@@ -5,6 +5,8 @@ import { add2, compareDistance, length2, sub2 } from "../helpers/utils.js";
 import { Area } from "../objects/area.js";
 import { AdjustTool } from "./adjust-tool.js";
 
+const { getTemplate } = foundry.applications.handlebars;
+
 export class DrawAreaTool extends Tool {
     optionsElement: any;
     optionsTemplate: any;

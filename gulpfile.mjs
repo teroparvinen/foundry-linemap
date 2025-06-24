@@ -12,7 +12,9 @@ const staticFiles = [
 	'assets',
 	'lang',
 	'module.json',
-	'templates'
+	'templates',
+	'README.md',
+	'LICENSE'
 ];
 
 export function scripts() {

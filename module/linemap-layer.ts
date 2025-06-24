@@ -9,6 +9,9 @@ import { DrawAreaTool } from "./tools/draw-area.js";
 import { DrawTextTool } from "./tools/draw-text.js";
 import { SelectTool } from "./tools/select-tool.js";
 import { AdjustTool } from "./tools/adjust-tool.js";
+import { ScenePropertiesApp } from "./apps/scene-properties.js";
+
+const { layers } = foundry.canvas;
 
 interface LayerData {
     objects: ObjectData[];
@@ -22,7 +25,7 @@ interface InterfaceState {
 
 export type TextureCollection = Record<string, { icon: any, footprint: any }>;
 
-export class LineMapLayer extends InteractionLayer {
+export class LineMapLayer extends layers.InteractionLayer {
     objects: ObjectType[] = [];
     placeables: any[] = [];
 
@@ -493,6 +496,136 @@ export class LineMapLayer extends InteractionLayer {
             this.objects = objectEntries?.map(o => o[0]) ?? [];
             this.isLightMode = data.isLightMode;
             this.symbolScale = data.symbolScale ?? 1.0;
+        }
+    }
+
+    static prepareSceneControls(): any {
+        if (game.user.isGM) {
+            return {
+                name: "linemap",
+                title: "Line Map",
+                layer: "linemap",
+                icon: "fas fa-route",
+                onChange: (event, active) => {
+                    if (active) {
+                        canvas.linemap.activate();
+                    } else {
+                        canvas.linemap.deactivate();
+                    }
+                },
+                tools: {
+                    selectObject: {
+                        order: 1,
+                        name: "selectObject",
+                        title: "linemap.tools.selectObject",
+                        icon: "fas fa-arrow-pointer",
+                        visible: true,
+                        onChange: (event, active) => { active && canvas.linemap.activateTool("selectObject"); }
+                    },
+                    adjustObject: {
+                        order: 2,
+                        name: "adjustObject",
+                        title: "linemap.tools.adjustObject",
+                        icon: "fas fa-up-down-left-right",
+                        visible: true,
+                        onChange: (event, active) => { active && canvas.linemap.activateTool("adjustObject"); }
+                    },
+                    drawLine: {
+                        order: 3,
+                        name: "drawLine",
+                        title: "linemap.tools.drawLine",
+                        icon: "fas fa-slash",
+                        visible: true,
+                        onChange: (event, active) => { active && canvas.linemap.activateTool("drawLine"); }
+                    },
+                    drawSymbol: {
+                        order: 3,
+                        name: "drawSymbol",
+                        title: "linemap.tools.drawSymbol",
+                        icon: "fas fa-shapes",
+                        visible: true,
+                        onChange: (event, active) => { active && canvas.linemap.activateTool("drawSymbol"); }
+                    },
+                    drawWaypoint: {
+                        order: 4,
+                        name: "drawWaypoint",
+                        title: "linemap.tools.drawWaypoint",
+                        icon: "fas fa-circle-nodes",
+                        visible: true,
+                        onChange: (event, active) => { active && canvas.linemap.activateTool("drawWaypoint"); }
+                    },
+                    drawArea: {
+                        order: 5,
+                        name: "drawArea",
+                        title: "linemap.tools.drawArea",
+                        icon: "fas fa-vector-polygon",
+                        visible: true,
+                        onChange: (event, active) => { active && canvas.linemap.activateTool("drawArea"); }
+                    },
+                    drawText: {
+                        order: 6,
+                        name: "drawText",
+                        title: "linemap.tools.drawText",
+                        icon: "fas fa-text",
+                        visible: true,
+                        onChange: (event, active) => { active && canvas.linemap.activateTool("drawText"); }
+                    },
+                    clearObjects: {
+                        order: 7,
+                        name: "clearObjects",
+                        title: "linemap.tools.trash",
+                        icon: "fas fa-trash",
+                        visible: true,
+                        button: true,
+                        onChange: async () => {
+                            if (await foundry.applications.api.DialogV2.confirm({
+                                content: game.i18n.localize('linemap.ui.confirmDelete'),
+                                rejectClose: false,
+                                modal: true
+                            })) {
+                                canvas.linemap.clear();
+                                await canvas.linemap.dataChanged();
+                                canvas.linemap._draw();
+                            }
+                        }
+                    },
+                    newObjectsRevealed: {
+                        order: 8,
+                        name: "newObjectsRevealed",
+                        title: "linemap.tools.newObjectsRevealed",
+                        icon: "fas fa-eye",
+                        toggle: true,
+                        active: true,
+                        onChange: (event, active) => {
+                            canvas.linemap.revealNewObjects = active;
+                        }
+                    },
+                    adjustLinked: {
+                        order: 9,
+                        name: "adjustLinked",
+                        title: "linemap.tools.adjustLinked",
+                        icon: "fas fa-arrows-left-right",
+                        toggle: true,
+                        active: true,
+                        onClick: (event, active) => {
+                            canvas.linemap.adjustLinked = active;
+                        }
+                    },
+                    linemapSettings: {
+                        order: 10,
+                        name: "linemapSettings",
+                        title: "linemap.tools.settings",
+                        icon: "fas fa-cog",
+                        visible: true,
+                        button: true,
+                        onChange: () => {
+                            ScenePropertiesApp.activate();
+                        }
+                    }
+                },
+                activeTool: "selectObject",
+                visible: true
+            };
         }
     }
 }

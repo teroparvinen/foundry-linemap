@@ -1,19 +1,17 @@
 {
     "id": "linemap",
     "title": "Line Map",
-    "description": "Draw maps using connected symbols",
+    "description": "Draw Grimwild style point crawl maps using connected symbols",
     "authors": [
         {
             "name": "Tero Parvinen (tero.p)"
         }
     ],
-    "version": "0.1",
+    "version": "0.13.0",
     "compatibility": {
-        "minimum": 12,
-        "verified": 12
+        "minimum": 13,
+        "verified": 13
     },
-    "scripts": [
-    ],
     "esmodules": [
         "module/linemap.js"
     ],
