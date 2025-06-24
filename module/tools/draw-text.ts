@@ -4,6 +4,8 @@ import { Point, PointType, SnapPoint, SnapType, Vec2 } from "../dto.js";
 import { add2, sub2 } from "../helpers/utils.js";
 import { Text, TextStyle } from "../objects/text.js";
 
+const { renderTemplate } = foundry.applications.handlebars;
+
 export class DrawTextTool extends Tool {
     snapPoint: SnapPoint;
 
@@ -31,8 +33,8 @@ export class DrawTextTool extends Tool {
             return await foundry.applications.api.DialogV2.prompt({
                 window: { title: game.i18n.localize('linemap.ui.enterTextTitle') },
                 content: await renderTemplate('modules/linemap/templates/text-entry.hbs', { initial }),
-                render: (event, element) => {
-                    element.querySelector("textarea").addEventListener("keypress", e => {
+                render: (event, dialog) => {
+                    dialog.element.querySelector("textarea").addEventListener("keypress", e => {
                         if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
                             e.currentTarget.closest("form").querySelector("button").click();

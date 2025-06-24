@@ -3,6 +3,8 @@ import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType } from "../cl
 import { AdjustmentPoint, PointType, Vec2 } from "../dto.js";
 import { add2, containsAabb, intersectAabb, length2, sub2, vec2fromXY } from "../helpers/utils.js";
 
+const { PreciseText } = foundry.canvas.containers;
+
 export enum TextStyle {
     normal = 'normal',
     bold = 'bold',
