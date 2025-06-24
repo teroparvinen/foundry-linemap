@@ -485,12 +485,12 @@ export class LineMapLayer extends InteractionLayer {
         if (data) {
             // this.quadtree.clear();
             const objectEntries: [ObjectType, ObjectData][] = data.objects?.map(o => [ObjectType.create(o), o]);
-            const objectMap = objectEntries.reduce((acc, obj) => {
+            const objectMap = objectEntries?.reduce((acc, obj) => {
                 acc[obj[0].id] = obj[0];
                 return acc;
-            }, {});
-            objectEntries.forEach(([obj, data]: [ObjectType, ObjectData]) => obj.deserialize(data, objectMap));
-            this.objects = objectEntries.map(o => o[0]);
+            }, {}) ?? {};
+            objectEntries?.forEach(([obj, data]: [ObjectType, ObjectData]) => obj.deserialize(data, objectMap));
+            this.objects = objectEntries?.map(o => o[0]) ?? [];
             this.isLightMode = data.isLightMode;
             this.symbolScale = data.symbolScale ?? 1.0;
         }
