@@ -1,5 +1,5 @@
 import { ConstrainedPoint } from "../classes/constrained-point.js";
-import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType } from "../classes/object.js";
+import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType, PointMover } from "../classes/object.js";
 import { AdjustmentPoint, PointType, Vec2 } from "../dto.js";
 import { add2, distanceToLine, dotProduct, lengthAndUnitVector, mult2, sub2 } from "../helpers/utils.js";
 
@@ -25,6 +25,10 @@ export class Area extends ObjectType {
             data.points,
             data.pattern
         );
+    }
+
+    static moveData(data: AreaData, move: PointMover): AreaData {
+        return { ...data, points: data.points?.map(move) };
     }
 
     get serialized(): AreaData {

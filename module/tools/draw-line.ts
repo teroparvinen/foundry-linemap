@@ -62,7 +62,7 @@ export class DrawLineTool extends Tool {
     }
 
     _updatePreview() {
-        this.layer.preview.removeChildren();
+        this.layer.clearPreview();
 
         const previewLine = this._getLineObject();
         if (previewLine) {
@@ -122,7 +122,7 @@ export class DrawLineTool extends Tool {
         if (length2(sub2(this.stroke[0].point, this.stroke[1].point)) > 10) {
             this._submitStroke(event);
         }
-        this.layer.preview.removeChildren();
+        this.layer.clearPreview();
         this.stroke = undefined;
     }
 

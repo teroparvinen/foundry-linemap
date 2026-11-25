@@ -1,4 +1,4 @@
-import { ObjectData, ObjectIdMapping, ObjectType } from "../classes/object.js";
+import { ObjectData, ObjectIdMapping, ObjectType, PointMover } from "../classes/object.js";
 import { ConstrainedPoint, ConstrainedPointData } from "../classes/constrained-point.js";
 import { Vec2, SnapPoint, SnapType, AdjustmentPoint, PointType } from "../dto.js";
 import { add2, distanceToLine, dotProduct, length2, lengthAndUnitVector, lineIntersectsBox, mult2, sub2 } from "../helpers/utils.js";
@@ -30,6 +30,14 @@ export class Line extends ObjectType {
             data.points.map(ptData => new ConstrainedPoint(PointType.line, ptData.point, objectMap[ptData.sourceId], ptData.sourceT)),
             data.style
         );
+    }
+
+    static moveData(data: LineData, move: PointMover): LineData {
+        return { ...data, points: data.points?.map(pt => pt.point ? { ...pt, point: move(pt.point) } : pt) };
+    }
+
+    get constrainedPoints(): ConstrainedPoint[] {
+        return this.points ?? [];
     }
 
     get serialized(): LineData {
@@ -84,7 +92,8 @@ export class Line extends ObjectType {
             return lineIntersectsBox(this.points.map(pt => pt.point), [pt1, pt2]);
         } else {
             const dist = distanceToLine(pt1, this.points[0].point, this.points[1].point, true);
-            const threshold = CONFIG.linemap.lineStyles[this.style].selectTolerance;
+            // A style this build does not know is drawn as the first style (getType), and selected like one.
+            const threshold = CONFIG.linemap.lineStyles[this.style]?.selectTolerance ?? 5;
             return dist <= threshold;
         }
     }

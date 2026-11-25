@@ -1,4 +1,4 @@
-import { ObjectData, ObjectType } from "./classes/object.js";
+import { ObjectData, ObjectType, UnknownObject } from "./classes/object.js";
 import { Tool, ToolHotkey } from "./classes/tool.js";
 import { Vec2, SnapType, SnapPoint } from "./dto.js";
 import { length2, sub2 } from "./helpers/utils.js";
@@ -43,6 +43,28 @@ export class LineMapLayer extends layers.InteractionLayer {
     isLightMode = false;
     symbolScale = 1.0;
 
+    // GPU render targets, made once per canvas draw in _draw and destroyed in _tearDown.
+    renderTexture: any;
+    lineTexture: any;
+    maskTexture: any;
+    // The display objects of the last redraw: destroyed at the start of the next one (objects read
+    // their sprite's size between redraws, so they cannot be destroyed straight after rendering).
+    drawn: any[] = [];
+
+    // Sorting in the primary group (see _draw).
+    elevation = 0;
+    sortLayer = 0;
+    sort = 1;
+
+    // Stage handlers bound once, so _deactivate removes exactly what _activate added.
+    stageHandlers: Record<string, (event: any) => void>;
+
+    // The name core records to restore the active layer after a canvas redraw, and the scene
+    // control activate() switches to. Unset, it was "", so a redraw dropped the GM onto Tokens.
+    static get layerOptions() {
+        return foundry.utils.mergeObject(super.layerOptions, { name: "linemap" });
+    }
+
     constructor() {
         super();
 
@@ -56,6 +78,14 @@ export class LineMapLayer extends layers.InteractionLayer {
             drawText: new DrawTextTool(this)
         };
         this.activeTool = this.tools['selectObject'];
+        this.stageHandlers = {
+            mousedown: this._leftMouseDown.bind(this),
+            mouseup: this._leftMouseUp.bind(this),
+            rightdown: this._rightMouseDown.bind(this),
+            rightup: this._rightMouseUp.bind(this),
+            pointermove: this._pointerMove.bind(this),
+            pointerout: this._pointerOut.bind(this)
+        };
 
         this.symbolTextures = Object.fromEntries(Object.entries(CONFIG.linemap.symbols).map(([key, value]: [string, any]) => {
             return [key, {
@@ -86,31 +116,77 @@ export class LineMapLayer extends layers.InteractionLayer {
                 this.redraw();
             }
         });
+
+        // A canvas draw restores the active layer (layerOptions.name) and only afterwards clears every
+        // stage listener (Canvas#addListeners: stage.removeAllListeners()), then fires canvasReady. So
+        // when this layer is the one restored, its handlers are put back here.
+        Hooks.on("canvasReady", () => {
+            if (this.active) this._attachStageHandlers();
+        });
     }
 
-    activate({ tool }: { tool?: string } = {}) {
-        super.activate({tool});
-        canvas.stage.addEventListener("mousedown", this._leftMouseDown.bind(this));
-        canvas.stage.addEventListener("mouseup", this._leftMouseUp.bind(this));
-        canvas.stage.addEventListener("rightdown", this._rightMouseDown.bind(this));
-        canvas.stage.addEventListener("rightup", this._rightMouseUp.bind(this));
-        canvas.stage.addEventListener("pointermove", this._pointerMove.bind(this));
-        canvas.stage.addEventListener("pointerout", this._pointerOut.bind(this));
+    /**
+     * preUpdateScene: when a Scene is resized with autoReposition (its config window sets it when
+     * the Scene has a background), core moves every placeable to keep its place on the background.
+     * Move the map the same way, in the same update; it used to stay put and slide off its places.
+     * Runs after core's own _preUpdate, so the transform is core's: scale by the size change, then
+     * offset to the new Scene rectangle.
+     */
+    static onPreUpdateScene(scene: any, changed: any, options: any) {
+        if (!options?.autoReposition) return;
+        const data = foundry.utils.getProperty(changed, "flags.linemap.serialized") ?? scene.getFlag("linemap", "serialized");
+        if (!data?.objects?.length) return;
+
+        const dims: Record<string, any> = {};
+        for (const key of ["width", "height", "padding", "shiftX", "shiftY", "grid"]) {
+            if (key in changed) dims[key] = foundry.utils.deepClone(changed[key]);
+        }
+        const updated = scene.clone(dims);
+        const sx = updated.width / scene.width;
+        const sy = updated.height / scene.height;
+        const ox = updated.dimensions.sceneX - sx * scene.dimensions.sceneX;
+        const oy = updated.dimensions.sceneY - sy * scene.dimensions.sceneY;
+        if (![sx, sy, ox, oy].every(Number.isFinite) || (sx === 1 && sy === 1 && ox === 0 && oy === 0)) return;
+
+        const move = ([x, y]: Vec2): Vec2 => [x * sx + ox, y * sy + oy];
+        const objects = data.objects.map(o => {
+            const cls = CONFIG.linemap.objectTypes[o?.type];
+            return cls ? cls.moveData(o, move) : o;
+        });
+        foundry.utils.setProperty(changed, "flags.linemap.serialized", { ...data, objects });
+    }
+
+    /** Add the stage handlers; safe to repeat, since each is removed by identity first. */
+    _attachStageHandlers() {
+        for (const [type, handler] of Object.entries(this.stageHandlers)) {
+            canvas.stage.removeEventListener(type, handler);
+            canvas.stage.addEventListener(type, handler);
+        }
+    }
+
+    _detachStageHandlers() {
+        for (const [type, handler] of Object.entries(this.stageHandlers)) {
+            canvas.stage.removeEventListener(type, handler);
+        }
+    }
+
+    // Core's activate()/deactivate() call these only on a real change of state. The handlers are
+    // bound once and removed by identity: a fresh .bind() would match nothing, and a set of
+    // listeners piled up on every visit to the layer.
+    _activate() {
+        this._attachStageHandlers();
         this.undoHistory = [];
         this.pushHistory();
-        return this;
     }
 
-    deactivate() {
-        super.deactivate();
-        canvas.stage.removeEventListener("mousedown", this._leftMouseDown.bind(this));
-        canvas.stage.removeEventListener("mouseup", this._leftMouseUp.bind(this));
-        canvas.stage.removeEventListener("rightdown", this._rightMouseDown.bind(this));
-        canvas.stage.removeEventListener("rightup", this._rightMouseUp.bind(this));
-        canvas.stage.removeEventListener("pointermove", this._pointerMove.bind(this));
-        canvas.stage.removeEventListener("pointerout", this._pointerOut.bind(this));
+    _deactivate() {
+        this._detachStageHandlers();
+        this.interactionData = undefined;
+        this.interactionDataRight = undefined;
+        // Takes the tool's option bar and preview off screen; the tool's own onChange(true)
+        // re-activates it when the GM comes back to the control.
+        this.clearTool();
         this.undoHistory = [];
-        return this;
     }
 
     activateTool(tool: string) {
@@ -123,7 +199,19 @@ export class LineMapLayer extends layers.InteractionLayer {
     clearTool() {
         this.activeTool?.deactivate();
         this.activeTool = null;
-        this.preview.removeChildren();
+        this.clearPreview();
+    }
+
+    /** Remove and destroy the preview's graphics: they are always made fresh, and a Graphics holds GPU buffers until destroyed. */
+    clearPreview() {
+        this.preview?.removeChildren().forEach(c => c.destroy({ children: true }));
+    }
+
+    /** Destroy the previous redraw's display objects. Shared textures (icons, render targets) are kept. */
+    _disposeDrawn() {
+        this.objectContainer?.removeChildren();
+        this.drawn.forEach(c => c.destroy({ children: true }));
+        this.drawn = [];
     }
 
     hotkeyPressed(key: ToolHotkey) {
@@ -136,8 +224,6 @@ export class LineMapLayer extends layers.InteractionLayer {
         if (withUndo) {
             this.registerHistory();
         }
-
-        this.removeChildren();
         // this.quadtree.clear();
     }
 
@@ -150,14 +236,22 @@ export class LineMapLayer extends layers.InteractionLayer {
     }
 
     deleteObjects(...obj: ObjectType[]) {
-        this.objects = this.objects.filter(o => !obj.includes(o));
+        const gone = new Set(obj);
+        // A point linked to a deleted object is pinned where it is now. Left linked, it kept following
+        // the deleted object in this session and was saved naming it, so a reload put it back where
+        // it had first been drawn.
+        for (const o of this.objects) if (!gone.has(o)) o.releaseConstraints(gone);
+        this.objects = this.objects.filter(o => !gone.has(o));
 
         this.registerHistory();
         this.redraw();
     }
 
     async _draw(options) {
-        this.renderTexture = PIXI.RenderTexture.create({ width: canvas.dimensions.width, height: canvas.dimensions.height });
+        const size = { width: canvas.dimensions.width, height: canvas.dimensions.height };
+        this.renderTexture = PIXI.RenderTexture.create(size);
+        this.lineTexture = PIXI.RenderTexture.create(size);
+        this.maskTexture = PIXI.RenderTexture.create(size);
         this.lineFilter = new PIXI.Filter(`
             attribute vec2 aVertexPosition;
 
@@ -206,6 +300,16 @@ export class LineMapLayer extends layers.InteractionLayer {
             }
         `, { screenDimensions: [this.renderTexture.width, this.renderTexture.height] });
 
+        // In the primary group, sit just above the background of the level being viewed: v14 draws
+        // each level's background at that level's bottom elevation, so at elevation 0 a raised
+        // level's background covered the map. Tiles, drawings and tokens there stay above it, as on
+        // the ground level. Viewing another level redraws the canvas, which runs this again.
+        // (canvas.level is v14's; on v13 this stays at elevation 0, as before.)
+        this.elevation = canvas.level?.elevation?.bottom ?? 0;
+        this.sortLayer = foundry.canvas.groups?.PrimaryCanvasGroup?.SORT_LAYERS?.SCENE ?? 0;
+        this.sort = 1;
+        if (this.parent) this.parent.sortDirty = true;
+
         this.objectContainer = new PIXI.Container();
 
         this.renderSprite = this.addChild(new PIXI.Sprite(this.renderTexture));
@@ -219,7 +323,9 @@ export class LineMapLayer extends layers.InteractionLayer {
     }
 
     redraw(highQuality = true) {
-        this.objectContainer.removeChildren();
+        // Nothing to draw into before the canvas has drawn this layer (_draw makes the targets).
+        if (!this.renderTexture) return;
+        this._disposeDrawn();
 
         const layers = {
             areas: new PIXI.Container(),
@@ -232,6 +338,8 @@ export class LineMapLayer extends layers.InteractionLayer {
             obj.draw(layers);
         });
 
+        this.drawn = Object.values(layers);
+
         if (!highQuality) {
             this.objectContainer.addChild(layers.areas);
             this.objectContainer.addChild(layers.lines);
@@ -240,17 +348,17 @@ export class LineMapLayer extends layers.InteractionLayer {
             return;
         }
 
-        const lineTexture = PIXI.RenderTexture.create({ width: canvas.dimensions.width, height: canvas.dimensions.height });
-        const maskTexture = PIXI.RenderTexture.create({ width: canvas.dimensions.width, height: canvas.dimensions.height });
-
-        canvas.app.renderer.render(layers.lines, { renderTexture: lineTexture, clear: true });
-        canvas.app.renderer.render(layers.footprints, { renderTexture: maskTexture, clear: true });
+        // The line and mask targets are reused: a fresh pair per redraw was never freed (PIXI's texture
+        // GC skips render textures) and leaked two scene-sized textures per click.
+        canvas.app.renderer.render(layers.lines, { renderTexture: this.lineTexture, clear: true });
+        canvas.app.renderer.render(layers.footprints, { renderTexture: this.maskTexture, clear: true });
 
         const lineContainer = new PIXI.Container();
-        const lineSprite = lineContainer.addChild(new PIXI.Sprite(lineTexture));
+        const lineSprite = lineContainer.addChild(new PIXI.Sprite(this.lineTexture));
         lineSprite.filters = [this.lineFilter];
-        this.lineFilter.uniforms.lineTexture = lineTexture;
-        this.lineFilter.uniforms.maskTexture = maskTexture;
+        this.lineFilter.uniforms.lineTexture = this.lineTexture;
+        this.lineFilter.uniforms.maskTexture = this.maskTexture;
+        this.drawn.push(lineContainer);
 
         canvas.app.renderer.render(layers.areas, { renderTexture: this.renderTexture, clear: true });
         canvas.app.renderer.render(lineContainer, { renderTexture: this.renderTexture, clear: false });
@@ -264,7 +372,13 @@ export class LineMapLayer extends layers.InteractionLayer {
 
     async _tearDown(options) {
         this.clear(false);
-        super._tearDown(options);
+        this._disposeDrawn();
+        this.objectContainer?.destroy({ children: true });
+        this.objectContainer = undefined;
+        // Destroys renderSprite and preview with their children (not their textures).
+        await super._tearDown(options);
+        for (const texture of [this.renderTexture, this.lineTexture, this.maskTexture]) texture?.destroy(true);
+        this.renderTexture = this.lineTexture = this.maskTexture = undefined;
     }
 
     getSnapPoints(pt: Vec2, types: SnapType[]): SnapPoint[] {
@@ -488,14 +602,23 @@ export class LineMapLayer extends layers.InteractionLayer {
         if (data) {
             // this.quadtree.clear();
             const objectEntries: [ObjectType, ObjectData][] = data.objects?.map(o => [ObjectType.create(o), o]);
+            // Links resolve only to objects this build can draw; a link to an unknown one falls
+            // back to the point saved with it.
             const objectMap = objectEntries?.reduce((acc, obj) => {
-                acc[obj[0].id] = obj[0];
+                if (!(obj[0] instanceof UnknownObject)) acc[obj[0].id] = obj[0];
                 return acc;
             }, {}) ?? {};
             objectEntries?.forEach(([obj, data]: [ObjectType, ObjectData]) => obj.deserialize(data, objectMap));
             this.objects = objectEntries?.map(o => o[0]) ?? [];
-            this.isLightMode = data.isLightMode;
+            this.isLightMode = !!data.isLightMode;
             this.symbolScale = data.symbolScale ?? 1.0;
+        } else {
+            // A scene with no drawing yet starts from the defaults. The layer outlives scenes, so
+            // without this the previous scene's colour and scale showed here and were saved into
+            // this scene on its first edit.
+            this.objects = [];
+            this.isLightMode = false;
+            this.symbolScale = 1.0;
         }
     }
 
@@ -503,6 +626,9 @@ export class LineMapLayer extends layers.InteractionLayer {
         if (game.user.isGM) {
             return {
                 name: "linemap",
+                // After core's controls (0 to 8 in v14). Unset, core's sort compared against
+                // undefined (NaN), so where Line Map landed was left to the sort.
+                order: 9,
                 title: "Line Map",
                 layer: "linemap",
                 icon: "fas fa-route",
@@ -539,7 +665,7 @@ export class LineMapLayer extends layers.InteractionLayer {
                         onChange: (event, active) => { active && canvas.linemap.activateTool("drawLine"); }
                     },
                     drawSymbol: {
-                        order: 3,
+                        order: 4,
                         name: "drawSymbol",
                         title: "linemap.tools.drawSymbol",
                         icon: "fas fa-shapes",
@@ -547,7 +673,7 @@ export class LineMapLayer extends layers.InteractionLayer {
                         onChange: (event, active) => { active && canvas.linemap.activateTool("drawSymbol"); }
                     },
                     drawWaypoint: {
-                        order: 4,
+                        order: 5,
                         name: "drawWaypoint",
                         title: "linemap.tools.drawWaypoint",
                         icon: "fas fa-circle-nodes",
@@ -555,7 +681,7 @@ export class LineMapLayer extends layers.InteractionLayer {
                         onChange: (event, active) => { active && canvas.linemap.activateTool("drawWaypoint"); }
                     },
                     drawArea: {
-                        order: 5,
+                        order: 6,
                         name: "drawArea",
                         title: "linemap.tools.drawArea",
                         icon: "fas fa-vector-polygon",
@@ -563,7 +689,7 @@ export class LineMapLayer extends layers.InteractionLayer {
                         onChange: (event, active) => { active && canvas.linemap.activateTool("drawArea"); }
                     },
                     drawText: {
-                        order: 6,
+                        order: 7,
                         name: "drawText",
                         title: "linemap.tools.drawText",
                         icon: "fas fa-text",
@@ -571,7 +697,7 @@ export class LineMapLayer extends layers.InteractionLayer {
                         onChange: (event, active) => { active && canvas.linemap.activateTool("drawText"); }
                     },
                     clearObjects: {
-                        order: 7,
+                        order: 8,
                         name: "clearObjects",
                         title: "linemap.tools.trash",
                         icon: "fas fa-trash",
@@ -583,36 +709,42 @@ export class LineMapLayer extends layers.InteractionLayer {
                                 rejectClose: false,
                                 modal: true
                             })) {
+                                // clear() saves and records history; a redraw replaces the old
+                                // _draw() call, which made a second set of textures and children.
+                                const state = canvas.linemap._captureState();
                                 canvas.linemap.clear();
-                                await canvas.linemap.dataChanged();
-                                canvas.linemap._draw();
+                                canvas.linemap.redraw();
+                                canvas.linemap._stateInvalidated(state);
                             }
                         }
                     },
                     newObjectsRevealed: {
-                        order: 8,
+                        order: 9,
                         name: "newObjectsRevealed",
                         title: "linemap.tools.newObjectsRevealed",
                         icon: "fas fa-eye",
                         toggle: true,
-                        active: true,
+                        // Live state: the controls are rebuilt on every canvas draw.
+                        active: canvas.linemap?.revealNewObjects ?? true,
                         onChange: (event, active) => {
                             canvas.linemap.revealNewObjects = active;
                         }
                     },
                     adjustLinked: {
-                        order: 9,
+                        order: 10,
                         name: "adjustLinked",
                         title: "linemap.tools.adjustLinked",
                         icon: "fas fa-arrows-left-right",
                         toggle: true,
-                        active: true,
-                        onClick: (event, active) => {
+                        active: canvas.linemap?.adjustLinked ?? true,
+                        // onChange(event, active): the deprecated onClick is called with one
+                        // argument, which left adjustLinked undefined.
+                        onChange: (event, active) => {
                             canvas.linemap.adjustLinked = active;
                         }
                     },
                     linemapSettings: {
-                        order: 10,
+                        order: 11,
                         name: "linemapSettings",
                         title: "linemap.tools.settings",
                         icon: "fas fa-cog",

@@ -1,5 +1,5 @@
 import { ConstrainedPoint, ConstrainedPointData } from "../classes/constrained-point.js";
-import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType } from "../classes/object.js";
+import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType, PointMover } from "../classes/object.js";
 import { AdjustmentPoint, PointType, Vec2 } from "../dto.js";
 import { add2, containsAabb, intersectAabb, length2, sub2, vec2fromXY } from "../helpers/utils.js";
 
@@ -44,6 +44,14 @@ export class Text extends ObjectType {
             data.text,
             data.style
         );
+    }
+
+    static moveData(data: TextData, move: PointMover): TextData {
+        return data.point?.point ? { ...data, point: { ...data.point, point: move(data.point.point) } } : data;
+    }
+
+    get constrainedPoints(): ConstrainedPoint[] {
+        return [this.point];
     }
 
     get serialized(): TextData {
@@ -130,6 +138,12 @@ export class Text extends ObjectType {
     }
 
     draw(layers: ObjectDrawLayers) {
+        this.sprite = undefined;
+        // Hidden labels are not drawn for players, like every other object type.
+        if (!this.isVisible) {
+            return;
+        }
+
         const pt = this.point.point;
         const text = new PreciseText(this.text, this._pixiOptions);
         text.anchor.set(0.5);
@@ -226,7 +240,9 @@ export class Text extends ObjectType {
 
     static calculateHeight(content: string): number {
         const text = new PreciseText(content, this._staticPixiOptions);
-        const bounds = text.getLocalBounds();
-        return bounds.height;
+        const height = text.getLocalBounds().height;
+        // A text owns a canvas and a texture: free them once measured.
+        text.destroy(true);
+        return height;
     }
 }

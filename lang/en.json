@@ -26,7 +26,8 @@
             "reverseWaypointDirection": "Reverse waypoint direction (select tool)",
             "deleteSelected": "Delete selected objects",
             "boldText": "Bold text",
-            "italicText": "Italic text"
+            "italicText": "Italic text",
+            "toggleLinked": "Toggle whether adjusting linked points preserves links"
         },
         "ui": {
             "enterTextTitle": "Text",

@@ -39,6 +39,14 @@ export class ConstrainedPoint {
         return this.unconstrainedPoint;
     }
 
+    /** Drop the link, keeping the point where the linked object puts it now. */
+    release() {
+        const pt = this.point;
+        this.unconstrainedPoint = pt ? [pt[0], pt[1]] : this.unconstrainedPoint;
+        this.sourceObject = undefined;
+        this.sourceT = undefined;
+    }
+
     setFrom(other: ConstrainedPoint, owner: ObjectType) {
         const isCyclic = other.sourceObject?.hasConstraintTo(owner);
 

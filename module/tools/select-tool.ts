@@ -58,6 +58,8 @@ export class SelectTool extends Tool {
     async onDoubleClick(event: any) {
         const eventPt: Vec2 = [event.interactionData.destination.x, event.interactionData.destination.y];
         const text = this.layer.objects.find(obj => obj instanceof Text && obj.testSelection(eventPt)) as Text;
+        // Only a double-click on a text edits it; anywhere else there is nothing to do.
+        if (!text) return;
         const content = await DrawTextTool.promptText(text.text);
         if (content) {
             text.text = content;
@@ -134,7 +136,7 @@ export class SelectTool extends Tool {
         const d = sub2(pt2, pt1);
 
         if (this.dragOperation === DragOperation.select) {
-            this.layer.preview.removeChildren();
+            this.layer.clearPreview();
 
             if (length2(d) > 3) {
                 const gfx = this.layer.preview.addChild(new PIXI.Graphics());
@@ -156,7 +158,7 @@ export class SelectTool extends Tool {
         const d = sub2(pt2, pt1);
 
         if (this.dragOperation === DragOperation.select) {
-            this.layer.preview.removeChildren();
+            this.layer.clearPreview();
 
             this._updateSelection(event.shiftKey, pt1, pt2);
         } else {

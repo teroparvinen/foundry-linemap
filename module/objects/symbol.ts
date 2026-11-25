@@ -1,5 +1,5 @@
 import { ConstrainedPoint, ConstrainedPointData } from "../classes/constrained-point.js";
-import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType } from "../classes/object.js";
+import { ObjectData, ObjectDrawLayers, ObjectIdMapping, ObjectType, PointMover } from "../classes/object.js";
 import { AdjustmentPoint, PointType, SnapPoint, SnapType, Vec2 } from "../dto.js";
 import { add2, containsAabb, intersectAabb, length2, sub2 } from "../helpers/utils.js";
 import { TextureCollection } from "../linemap-layer.js";
@@ -30,6 +30,14 @@ export class Symbol extends ObjectType {
         );
     }
 
+    static moveData(data: SymbolData, move: PointMover): SymbolData {
+        return data.point?.point ? { ...data, point: { ...data.point, point: move(data.point.point) } } : data;
+    }
+
+    get constrainedPoints(): ConstrainedPoint[] {
+        return [this.point];
+    }
+
     get serialized(): SymbolData {
         return { ...super.serialized, ...{
             point: this.point.serialized,
@@ -50,13 +58,17 @@ export class Symbol extends ObjectType {
     }
 
     get textAscent(): number {
-        return this.sprite.height / 2 + 5;
+        return (this.sprite?.height ?? 0) / 2 + 5;
     }
 
     draw(layers: ObjectDrawLayers) {
+        // The previous redraw's sprite is destroyed by the layer; never keep a reference to it.
+        this.sprite = undefined;
         const pt = this.point.point;
-        const icon = this.textureCollection[this.symbol].icon;
-        const footprint = this.textureCollection[this.symbol].footprint;
+        // A symbol this build does not know is drawn as the collection's first, and keeps its own key.
+        const textures = this.textureCollection[this.symbol] ?? Object.values(this.textureCollection)[0];
+        const icon = textures?.icon;
+        const footprint = textures?.footprint;
         const scale = this.scale;
         if (this.isVisible && icon) {
             const sprite = new PIXI.Sprite(icon);

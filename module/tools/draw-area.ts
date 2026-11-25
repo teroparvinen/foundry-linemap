@@ -60,7 +60,7 @@ export class DrawAreaTool extends Tool {
     }
 
     updateIndicators() {
-        this.layer.preview.removeChildren();
+        this.layer.clearPreview();
 
         const adjPts = this.selectedArea?.getAdjustmentPoints() ?? [];
 
@@ -163,7 +163,7 @@ export class DrawAreaTool extends Tool {
             this.layer.redraw(false);
             this.updateIndicators();
         } else {
-            this.layer.preview.removeChildren();
+            this.layer.clearPreview();
 
             if (length2(d) > 3) {
                 const lineWidth = CONFIG.linemap.patterns[this.activePattern]?.lineWidth ?? 4;
@@ -190,7 +190,7 @@ export class DrawAreaTool extends Tool {
             this.layer.redraw(false);
             this.updateIndicators();
         } else {
-            this.layer.preview.removeChildren();
+            this.layer.clearPreview();
 
             const area = new Area();
             area.construct([pt1, [pt2[0], pt1[1]], pt2, [pt1[0], pt2[1]]], this.activePattern);

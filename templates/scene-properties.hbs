@@ -11,7 +11,7 @@
     <div class="form-group">
         <label>{{localize "linemap.ui.symbolScale"}}</label>
         <div class="form-fields">
-            {{rangePicker name="symbolScale" value=symbolScale min=1.0 max=2.0 step=0.1}}
+            <range-picker name="symbolScale" value="{{symbolScale}}" min="1" max="2" step="0.1"></range-picker>
         </div>
     </div>
 </section>
