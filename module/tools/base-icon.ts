@@ -60,7 +60,7 @@ export class BaseIconTool extends Tool {
     }    
 
     _updatePreview() {
-        this.layer.preview.removeChildren();
+        this.layer.clearPreview();
 
         if (this.snapPoint) {
             const gfx = this.layer.preview.addChild(new PIXI.Graphics());
@@ -88,7 +88,7 @@ export class BaseIconTool extends Tool {
         this.snapPoint = this.layer.getSnapPoint(eventPt, this.snapTypes);
         const pt = this.snapPoint ? this.snapPoint.pt : eventPt;
 
-        this.layer.preview.removeChildren();
+        this.layer.clearPreview();
         
         const object = this._createObject(ConstrainedPoint.fromSnapOrPoint(PointType.point, pt, this.snapPoint));
         this.layer.addObject(object);

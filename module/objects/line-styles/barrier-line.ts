@@ -1,17 +1,18 @@
-import { ObjectDrawLayers } from "../../classes/object.js";
 import { add2, mult2, normal, normalize, sub2 } from "../../helpers/utils.js";
 import { Line } from "../line.js";
 
 export class BarrierLine extends Line {
-    draw(layers: ObjectDrawLayers) {
-        if (this.isVisible && this.points) {
+    get hiddenAlpha(): number {
+        return 0.2;
+    }
+
+    makeGraphics(): any {
+        {
             const poly = new PIXI.Polygon(...this.points.flatMap(pt => pt.point));
             poly.closeStroke = false;
             const gfx = new PIXI.Graphics()
                 .lineStyle(12, this._currentColorHex)
                 .drawPolygon(poly);
-            gfx.alpha = this.isRevealed ? 1.0 : 0.2;
-            layers.lines?.addChild(gfx);
 
             const pt1b = this.points[0].point;
             const pt2b = this.points[1].point;
@@ -30,6 +31,7 @@ export class BarrierLine extends Line {
                 .lineStyle(4, this._currentColorHex)
                 .moveTo(...add2(pt2e, mult2(ne, 20)))
                 .lineTo(...add2(pt2e, mult2(ne, -20)));
+            return gfx;
         }
     }
 }

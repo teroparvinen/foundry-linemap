@@ -31,7 +31,9 @@ export class ScenePropertiesApp extends api.HandlebarsApplicationMixin(
 
     static async handleSubmit(event, form, formData) {
         canvas.linemap.isLightMode = !!form.elements.isLightMode.value;
-        canvas.linemap.symbolScale = parseFloat(form.elements.symbolScale.value) ?? 1.0;
+        // parseFloat gives NaN, never null, so `?? 1.0` could not fall back: check and clamp instead.
+        const scale = Number(form.elements.symbolScale.value);
+        canvas.linemap.symbolScale = Number.isFinite(scale) ? Math.min(Math.max(scale, 1), 2) : 1.0;
         canvas.linemap.redraw();
         await canvas.linemap.dataChanged();
 

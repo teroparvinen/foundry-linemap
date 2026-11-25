@@ -12,15 +12,16 @@ import { Waypoint } from "./objects/waypoint.js";
 
 Hooks.on("init", async () => {
     CONFIG.Canvas.layers.linemap = { group: "primary", layerClass: LineMapLayer };
+    Hooks.on("preUpdateScene", LineMapLayer.onPreUpdateScene);
 
     const selectTool = (tool: string) => {
-        if (canvas.linemap.active) {
+        if (canvas.linemap?.active) {
             ui.controls.activate({ tool })
             return true;
         }
     }
     const sendHotkey = (key: ToolHotkey) => {
-        if (canvas.linemap.active) {
+        if (canvas.linemap?.active) {
             canvas.linemap.hotkeyPressed(key);
             return true;
         }
@@ -152,8 +153,11 @@ Hooks.on("init", async () => {
             { key: "KeyN" }
         ],
         onDown: () => {
-            canvas.linemap.adjustLinked = !canvas.linemap.adjustLinked;
-            ui.controls.initialize();
+            // Only on the Line Map layer, so N still reaches core and other packages elsewhere.
+            if (!canvas.linemap?.active) return;
+            // Through the toggle, so the button follows and its onChange sets adjustLinked
+            // (ui.controls.initialize() is deprecated and never updated the button).
+            ui.controls.activate({ toggles: { adjustLinked: !canvas.linemap.adjustLinked } });
             return true;
         },
         precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
@@ -165,7 +169,7 @@ Hooks.on("init", async () => {
             { key: "Backspace" }
         ],
         onDown: (event: any) => {
-            if (canvas.linemap.active) {
+            if (canvas.linemap?.active) {
                 canvas.linemap._onDeleteKey(event);
                 return true;
             }
@@ -177,7 +181,7 @@ Hooks.on("init", async () => {
             { key: "KeyZ", modifiers: ["Control"] }
         ],
         onDown: (event: any) => {
-            if (canvas.linemap.active) {
+            if (canvas.linemap?.active) {
                 canvas.linemap.undo();
                 return true;
             }

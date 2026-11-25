@@ -1,8 +1,8 @@
 <div>
     {{#if menuOptions.left}}
-        <a class="linemap-menu-item linemap-menu-item-left" data-action="selectOption" data-option="left"><i class="fas {{menuOptions.left.icon}}"></i></a>
+        <a class="linemap-menu-item linemap-menu-item-left" data-action="selectOption" data-option="left" data-tooltip="{{menuOptions.left.label}}" aria-label="{{localize menuOptions.left.label}}"><i class="fas {{menuOptions.left.icon}}" aria-hidden="true"></i></a>
     {{/if}}
     {{#if menuOptions.right}}
-        <a class="linemap-menu-item linemap-menu-item-right" data-action="selectOption" data-option="right"><i class="fas {{menuOptions.right.icon}}"></i></a>
+        <a class="linemap-menu-item linemap-menu-item-right" data-action="selectOption" data-option="right" data-tooltip="{{menuOptions.right.label}}" aria-label="{{localize menuOptions.right.label}}"><i class="fas {{menuOptions.right.icon}}" aria-hidden="true"></i></a>
     {{/if}}
 </div>

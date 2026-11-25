@@ -1,4 +1,3 @@
-import { ObjectDrawLayers } from "../../classes/object.js";
 import { PointType, SnapPoint, SnapType, Vec2 } from "../../dto.js";
 import { add2, dotProduct, length2, lengthAndUnitVector, mult2, normal, sub2 } from "../../helpers/utils.js";
 import { Line } from "../line.js";
@@ -34,18 +33,12 @@ export class WaveLine extends Line {
         return [...Array(points.length / 2).keys()].map(i => [points[i * 2], points[i * 2 + 1]]);
     }
 
-    draw(layers: ObjectDrawLayers) {
-        if (this.isVisible && this.points) {
-            const gfx = new PIXI.Graphics()
-                .lineStyle(3, this._currentColorHex);
-
-            const poly = new PIXI.Polygon(...this.path.flatMap(p => p));
-            poly.closeStroke = false;
-            gfx.drawPolygon(poly);
-
-            gfx.alpha = this.isRevealed ? 1.0 : 0.4;
-            layers.lines?.addChild(gfx);
-        }
+    makeGraphics(): any {
+        const gfx = new PIXI.Graphics()
+            .lineStyle(3, this._currentColorHex);
+        const poly = new PIXI.Polygon(...this.path.flatMap(p => p));
+        poly.closeStroke = false;
+        return gfx.drawPolygon(poly);
     }
 
     getSnapPoints(pt: Vec2, types: SnapType[]) {

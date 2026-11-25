@@ -1,11 +1,10 @@
-import { ObjectDrawLayers } from "../../classes/object.js";
 import { Vec2 } from "../../dto.js";
 import { add2, lengthAndUnitVector, mult2, sub2 } from "../../helpers/utils.js";
 import { Line } from "../line.js";
 
 export class DashLine extends Line {
-    draw(layers: ObjectDrawLayers) {
-        if (this.isVisible && this.points) {
+    makeGraphics(): any {
+        {
             let coverage = 0;
             const gfx = new PIXI.Graphics()
                 .lineStyle(4, this._currentColorHex);
@@ -39,8 +38,7 @@ export class DashLine extends Line {
                 coverage += l;
             }
 
-            gfx.alpha = this.isRevealed ? 1.0 : 0.4;
-            layers.lines?.addChild(gfx);
+            return gfx;
         }
     }
 }
