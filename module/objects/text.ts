@@ -77,7 +77,8 @@ export class Text extends ObjectType {
 
     static get _staticPixiOptions(): any {
         return {
-            fontFamily: 'Noticia Text',
+            // The scene's label font (shipped with the module and registered at init).
+            fontFamily: [canvas.linemap?.labelFont ?? 'Noticia Text', 'serif'],
             fontSize: 36,
             align: 'center'
         };

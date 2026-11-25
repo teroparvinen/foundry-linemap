@@ -37,6 +37,7 @@
             "lightMode": "White content",
             "darkMode": "Black content",
             "symbolScale": "Symbol scale",
+            "labelFont": "Label font",
             "confirmDelete": "Delete all scene content?"
         },
         "error": {

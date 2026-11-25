@@ -185,7 +185,39 @@ Hooks.on("init", async () => {
         precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY
     });
 
+    // The label font, shipped with the module (SIL OFL 1.1, licence beside the files): it was named
+    // but never loaded, so each browser drew labels in whatever serif it had. Registered here so
+    // Foundry loads it for every client before the canvas draws; `??=` leaves a definition made by
+    // the world or another package alone.
+    const fontPath = "modules/linemap/assets/fonts";
+    CONFIG.fontDefinitions["Noticia Text"] ??= {
+        editor: false,
+        fonts: [
+            { urls: [`${fontPath}/noticia-text/NoticiaText-Regular.ttf`] },
+            { urls: [`${fontPath}/noticia-text/NoticiaText-Bold.ttf`], weight: 700 },
+            { urls: [`${fontPath}/noticia-text/NoticiaText-Italic.ttf`], style: "italic" },
+            { urls: [`${fontPath}/noticia-text/NoticiaText-BoldItalic.ttf`], weight: 700, style: "italic" }
+        ]
+    };
+    // Two more for the scene's Label font setting.
+    CONFIG.fontDefinitions["Alegreya"] ??= {
+        editor: false,
+        fonts: [
+            { urls: [`${fontPath}/alegreya/Alegreya-wght.woff2`], weight: "400 900" },
+            { urls: [`${fontPath}/alegreya/Alegreya-Italic-wght.woff2`], weight: "400 900", style: "italic" }
+        ]
+    };
+    CONFIG.fontDefinitions["IM Fell English"] ??= {
+        editor: false,
+        fonts: [
+            { urls: [`${fontPath}/im-fell-english/IMFeENrm28P.ttf`] },
+            { urls: [`${fontPath}/im-fell-english/IMFeENit28P.ttf`], style: "italic" }
+        ]
+    };
+
     CONFIG.linemap = {
+        // The scene setting's label font choices; the first is the default.
+        labelFonts: ["Noticia Text", "Alegreya", "IM Fell English"],
         snap: {
             lineEnd: 10,
             line: 5,

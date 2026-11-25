@@ -25,13 +25,17 @@ export class ScenePropertiesApp extends api.HandlebarsApplicationMixin(
     _prepareContext(options: any) {
         const isLightMode = canvas.linemap.isLightMode;
         const symbolScale = canvas.linemap.symbolScale;
+        const labelFont = canvas.linemap.labelFont;
+        const labelFonts = Object.fromEntries((CONFIG.linemap.labelFonts as string[]).map(f => [f, f]));
 
-        return { isLightMode, symbolScale };
+        return { isLightMode, symbolScale, labelFont, labelFonts };
     }
 
     static async handleSubmit(event, form, formData) {
         canvas.linemap.isLightMode = !!form.elements.isLightMode.value;
         canvas.linemap.symbolScale = parseFloat(form.elements.symbolScale.value) ?? 1.0;
+        const font = form.elements.labelFont?.value;
+        if (CONFIG.linemap.labelFonts.includes(font)) canvas.linemap.labelFont = font;
         canvas.linemap.redraw();
         await canvas.linemap.dataChanged();
 

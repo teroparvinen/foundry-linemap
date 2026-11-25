@@ -17,6 +17,7 @@ interface LayerData {
     objects: ObjectData[];
     isLightMode: boolean;
     symbolScale: number;
+    labelFont?: string;
 }
 
 interface InterfaceState {
@@ -42,6 +43,11 @@ export class LineMapLayer extends layers.InteractionLayer {
 
     isLightMode = false;
     symbolScale = 1.0;
+    labelFont = LineMapLayer.defaultLabelFont;
+
+    static get defaultLabelFont(): string {
+        return CONFIG.linemap?.labelFonts?.[0] ?? "Noticia Text";
+    }
 
     constructor() {
         super();
@@ -465,7 +471,8 @@ export class LineMapLayer extends layers.InteractionLayer {
         const objects = this.objects.map(o => o.serialized);
         const isLightMode = this.isLightMode;
         const symbolScale = this.symbolScale;
-        return { objects, isLightMode, symbolScale };
+        const labelFont = this.labelFont;
+        return { objects, isLightMode, symbolScale, labelFont };
     }
 
     pushHistory() {
@@ -496,6 +503,8 @@ export class LineMapLayer extends layers.InteractionLayer {
             this.objects = objectEntries?.map(o => o[0]) ?? [];
             this.isLightMode = data.isLightMode;
             this.symbolScale = data.symbolScale ?? 1.0;
+            // Maps saved before the setting existed get the default font.
+            this.labelFont = data.labelFont || LineMapLayer.defaultLabelFont;
         }
     }
 

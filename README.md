@@ -48,3 +48,15 @@ Access other scene specific settings using the settings layer control button.
 
 - Change the icon scale from 100% to 200% to represent lower or higher levels of scale detail
 - Change the content color to white or black for better contrast with the scene background used
+- Choose the label font: Noticia Text (the default), Alegreya or IM Fell English
+
+## Fonts
+
+The label fonts ship with the module, each under the SIL Open Font License 1.1, with its licence
+beside it in `assets/fonts/`:
+
+- **Noticia Text** (the default), copyright 2011 JM Solé, the Google Fonts files unmodified.
+- **Alegreya**, copyright 2011 The Alegreya Project Authors
+  (https://github.com/huertatipografica/Alegreya), compressed to WOFF2 from the Google Fonts release.
+- **IM Fell English**, copyright 2010 Igino Marini (www.iginomarini.com), the Google Fonts files
+  unmodified.
