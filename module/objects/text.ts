@@ -130,6 +130,12 @@ export class Text extends ObjectType {
     }
 
     draw(layers: ObjectDrawLayers) {
+        this.sprite = undefined;
+        // Hidden labels are not drawn for players, like every other object type.
+        if (!this.isVisible) {
+            return;
+        }
+
         const pt = this.point.point;
         const text = new PreciseText(this.text, this._pixiOptions);
         text.anchor.set(0.5);
