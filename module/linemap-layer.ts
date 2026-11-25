@@ -23,13 +23,31 @@ interface InterfaceState {
     selectedIds: string[];
 }
 
+/** One object an edit touched: what it was (null: the edit made it) and where it stood. */
+interface ObjectChange {
+    id: string;
+    index: number;
+    before: ObjectData | null;
+}
+
+/** One undoable edit: the objects it changed, made or removed. */
+interface HistoryEntry {
+    changes: ObjectChange[];
+}
+
 export type TextureCollection = Record<string, { icon: any, footprint: any }>;
 
 export class LineMapLayer extends layers.InteractionLayer {
     objects: ObjectType[] = [];
     placeables: any[] = [];
 
-    undoHistory: LayerData[] = [];
+    static MaxUndo = 100;
+
+    // This user's own edits, newest last. Each holds only the objects it touched, so an undo takes
+    // back that edit and leaves alone whatever another Gamemaster drew meanwhile.
+    undoHistory: HistoryEntry[] = [];
+    // The map as last saved or loaded, deep-copied: an edit is the difference from it.
+    baseline: LayerData;
 
     tools: Record<string, Tool> = {};
     activeTool: Tool;
@@ -97,7 +115,6 @@ export class LineMapLayer extends layers.InteractionLayer {
         canvas.stage.addEventListener("pointermove", this._pointerMove.bind(this));
         canvas.stage.addEventListener("pointerout", this._pointerOut.bind(this));
         this.undoHistory = [];
-        this.pushHistory();
         return this;
     }
 
@@ -433,20 +450,55 @@ export class LineMapLayer extends layers.InteractionLayer {
         await this.tools[game.activeTool]?.onDeleteKey(event);
     }
 
+    /**
+     * Record an edit for undo and save it. The record is the difference from the last saved state,
+     * taken before the save is awaited: callers do not await this, and a record pushed after the
+     * await held whatever the map looked like by then, so two quick edits came back as one.
+     */
     async registerHistory() {
-        await this.dataChanged();
-        this.pushHistory();
+        const entry = this._diff(this.baseline, this.serialized);
+        if (entry.changes.length) {
+            this.undoHistory.push(entry);
+            if (this.undoHistory.length > LineMapLayer.MaxUndo) this.undoHistory.shift();
+        }
+        await this._saveData();
     }
 
-    async undo() {
-        if (this.undoHistory.length >= 2) {
-            const state = this._captureState();
-            this.undoHistory.pop();
-            this.applyData(this.undoHistory.at(-1));
-            await this._saveData();
-            this.redraw();
-            this._stateInvalidated(state);
+    /** The objects that differ between two states, each with what it was in the first. */
+    _diff(from: LayerData | undefined, to: LayerData): HistoryEntry {
+        const before = new Map((from?.objects ?? []).map((o, index) => [o.id, { o, index }]));
+        const after = new Map(to.objects.map(o => [o.id, o]));
+        const changes: ObjectChange[] = [];
+        for (const [id, { o, index }] of before) {
+            const now = after.get(id);
+            if (!now || JSON.stringify(now) !== JSON.stringify(o)) changes.push({ id, index, before: o });
         }
+        for (const id of after.keys()) {
+            if (!before.has(id)) changes.push({ id, index: -1, before: null });
+        }
+        return { changes: structuredClone(changes) };
+    }
+
+    /** Take back this user's last edit: what it made goes, what it changed or removed comes back. */
+    async undo() {
+        const entry = this.undoHistory.pop();
+        if (!entry) return;
+        const state = this._captureState();
+        const data = structuredClone(this.serialized);
+        const pending = new Map(entry.changes.map(c => [c.id, c]));
+        const objects = data.objects.flatMap(o => {
+            const change = pending.get(o.id);
+            if (!change) return [o];
+            pending.delete(o.id);
+            return change.before ? [change.before] : [];
+        });
+        // What the edit removed (or changed, and someone has removed since) goes back where it was.
+        const restore = [...pending.values()].filter(c => c.before).sort((a, b) => a.index - b.index);
+        for (const c of restore) objects.splice(Math.min(c.index, objects.length), 0, c.before);
+        this.applyData({ ...data, objects: structuredClone(objects) });
+        this.redraw();
+        await this._saveData();
+        this._stateInvalidated(state);
     }
 
     _captureState(): InterfaceState {
@@ -468,20 +520,19 @@ export class LineMapLayer extends layers.InteractionLayer {
         return { objects, isLightMode, symbolScale };
     }
 
-    pushHistory() {
-        this.undoHistory.push(structuredClone(this.serialized));
-    }
-
     async dataChanged() {
         await this._saveData();
     }
 
     fetchData() {
         this.applyData(canvas.scene.getFlag("linemap", "serialized"));
+        this.baseline = structuredClone(this.serialized);
     }
 
     async _saveData() {
-        await canvas.scene.update({ "flags.linemap.serialized": this.serialized }, { userId: game.user.id });
+        const data = structuredClone(this.serialized);
+        this.baseline = structuredClone(data);
+        await canvas.scene.update({ "flags.linemap.serialized": data }, { userId: game.user.id });
     }
 
     applyData(data: LayerData) {

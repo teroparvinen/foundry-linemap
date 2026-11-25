@@ -70,8 +70,8 @@ export class DrawTextTool extends Tool {
     
                 const text = new Text();
                 text.construct(ConstrainedPoint.fromSnapOrPoint(PointType.point, pt, snapPoint), offset, content);
+                // addObject saves and records the edit; a second record here made undo take two presses.
                 this.layer.addObject(text);
-                this.layer.registerHistory();
                 this.layer.setSelection(text);
             } else {
                 this.layer.setSelection();
